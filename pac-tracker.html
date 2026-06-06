@@ -2409,12 +2409,15 @@ function openDrawer(posId){
   </div>
   <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="closeDrawer();switchTab('portfolio');setTimeout(()=>editPos('${posId}'),80)">✏️ Modifica Strumento</button>`;
   document.getElementById('drw-bd').innerHTML=priceHero+miniChart+stats+compHtml+txHtml+actions;
+  var drwEl=document.getElementById('drw');drwEl.style.transform='translateX(0)';
   document.getElementById('drw-ov').classList.add('open');
   document.body.style.overflow='hidden';
   if(hasPerfData)requestAnimationFrame(()=>buildMiniChart(posId,pos.ticker));
 }
 
 function closeDrawer(){
+  var drwEl=document.getElementById('drw');
+  if(drwEl)drwEl.style.transform='translateX(105%)';
   document.getElementById('drw-ov').classList.remove('open');
   document.body.style.overflow='';
 }
@@ -4399,7 +4402,7 @@ function switchSettingsTab(tab){
 </script>
 
 <div id="drw-ov" onclick="if(event.target===this)closeDrawer()">
-  <div id="drw">
+  <div id="drw" style="position:fixed!important;right:0;top:0;bottom:0;width:480px;max-width:92vw;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;z-index:151;transform:translateX(105%);transition:transform .3s ease">
     <div id="drw-hd">
       <div style="min-width:0">
         <div class="drw-title" id="drw-name"></div>
