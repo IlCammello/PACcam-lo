@@ -393,11 +393,8 @@ details[open] summary{margin-bottom:10px}
   overflow-y:auto;z-index:151;
   transform:translateX(105%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
 #drw-ov.open #drw{transform:translateX(0)}
-@media(max-width:600px){
-  #drw{top:auto;right:0;left:0;bottom:0;width:100%;max-width:100%;height:88vh;border-radius:16px 16px 0 0;transform:translateY(100%)}
-  #drw-ov.open #drw{transform:translateY(0)}
-  .drw-stat-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
-}
+.is-mobile #drw{top:auto!important;right:0!important;left:0!important;bottom:0!important;width:100%!important;max-width:100%!important;height:88vh!important;border-radius:16px 16px 0 0!important;transform:translateY(100%)!important}
+.is-mobile #drw-ov.open #drw{transform:translateY(0)!important}
 #drw-hd{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);
   padding:16px 20px;display:flex;align-items:start;justify-content:space-between;gap:12px;z-index:1}
 .drw-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--text);margin-bottom:5px;line-height:1.3}
@@ -2368,14 +2365,18 @@ function openDrawer(posId){
     ?`<div class="drw-sec"><div class="drw-sec-title">Andamento 12 Mesi</div><div style="height:110px;position:relative"><canvas id="drw-c-${posId}"></canvas></div></div>`
     :`<div class="drw-sec"><div style="text-align:center;padding:14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.5">Carica i dati in <strong>📈 Performance</strong><br>per vedere il grafico del prezzo</div></div>`;
   // Stats
-  const stats=`<div class="drw-sec"><div class="drw-sec-title">Posizione</div>
-    <div class="drw-stat-grid" style="display:flex;flex-wrap:wrap;gap:8px">
-      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Quote</div><div class="drw-stat-val">${fNum(cp.totalShares,4)}</div></div>
-      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Prezzo Medio Carico</div><div class="drw-stat-val">${cp.avgCost>0?fEur(cp.avgCost):'—'}</div></div>
-      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Totale Investito</div><div class="drw-stat-val">${fEur(cp.totalCost)}</div></div>
-      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Valore Attuale</div><div class="drw-stat-val">${fEur(cp.currentVal)}</div></div>
-    </div>
-  </div>`;
+  var SC_='background:#161e2e;border-radius:8px;padding:11px 12px;width:calc(50% - 4px);box-sizing:border-box';
+  var SL_='font-size:10px;color:#7a90a8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em';
+  var SV_='font-family:monospace;font-size:14px;font-weight:500;color:#e8e9ea';
+  const stats='<div style="margin-bottom:22px">'+
+    '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Posizione</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Quote</div><div style="'+SV_+'">'+fNum(cp.totalShares,4)+'</div></div>'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Prezzo Medio Carico</div><div style="'+SV_+'">'+(cp.avgCost>0?fEur(cp.avgCost):'—')+'</div></div>'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Totale Investito</div><div style="'+SV_+'">'+fEur(cp.totalCost)+'</div></div>'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Valore Attuale</div><div style="'+SV_+'">'+fEur(cp.currentVal)+'</div></div>'+
+    '</div>'+
+  '</div>';
   // Composition bars
   let compHtml='';
   const mkBars=(arr,cmap,w)=>arr.slice(0,7).map(c=>`<div class="drw-comp-row">
@@ -4200,6 +4201,7 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 // Forza ordine dashboard con perf prima
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
+if('ontouchstart' in window||navigator.maxTouchPoints>0)document.body.classList.add('is-mobile');
 loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
 // Auto-carica dati storici in background se non presenti
 setTimeout(function(){
