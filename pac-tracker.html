@@ -2369,11 +2369,11 @@ function openDrawer(posId){
     :`<div class="drw-sec"><div style="text-align:center;padding:14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.5">Carica i dati in <strong>📈 Performance</strong><br>per vedere il grafico del prezzo</div></div>`;
   // Stats
   const stats=`<div class="drw-sec"><div class="drw-sec-title">Posizione</div>
-    <div class="drw-stat-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="drw-stat"><div class="drw-stat-lbl">Quote</div><div class="drw-stat-val">${fNum(cp.totalShares,4)}</div></div>
-      <div class="drw-stat"><div class="drw-stat-lbl">Prezzo Medio Carico</div><div class="drw-stat-val">${cp.avgCost>0?fEur(cp.avgCost):'—'}</div></div>
-      <div class="drw-stat"><div class="drw-stat-lbl">Totale Investito</div><div class="drw-stat-val">${fEur(cp.totalCost)}</div></div>
-      <div class="drw-stat"><div class="drw-stat-lbl">Valore Attuale</div><div class="drw-stat-val">${fEur(cp.currentVal)}</div></div>
+    <div class="drw-stat-grid" style="display:flex;flex-wrap:wrap;gap:8px">
+      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Quote</div><div class="drw-stat-val">${fNum(cp.totalShares,4)}</div></div>
+      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Prezzo Medio Carico</div><div class="drw-stat-val">${cp.avgCost>0?fEur(cp.avgCost):'—'}</div></div>
+      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Totale Investito</div><div class="drw-stat-val">${fEur(cp.totalCost)}</div></div>
+      <div class="drw-stat" style="flex:1;min-width:calc(50% - 4px)"><div class="drw-stat-lbl">Valore Attuale</div><div class="drw-stat-val">${fEur(cp.currentVal)}</div></div>
     </div>
   </div>`;
   // Composition bars
