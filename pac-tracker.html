@@ -2496,15 +2496,20 @@ function rperf(){
   bCumulative(cp,tv);
   renderXIRRBlock();
   renderTER(cp);
-  if(Object.keys(PC).some(k=>PC[k])){
-    document.getElementById('block-hm').style.display='';
-    document.getElementById('block-per').style.display='';
-    document.getElementById('block-period-view').style.display='';
+  // Mostra sempre i blocchi Performance
+  document.getElementById('block-hm').style.display='';
+  document.getElementById('block-per').style.display='';
+  document.getElementById('block-period-view').style.display='';
+  var hasPCNow=Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;});
+  console.log('[rperf] hasPCNow='+hasPCNow+' PC keys='+Object.keys(PC).length);
+  if(hasPCNow){
     rHeatmap(cp,tv);rPeriodTable(cp,tv);
     initPeriodPills();renderPeriodChart(selPeriod);
+  } else {
+    document.getElementById('heatmap-body').innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
+    document.getElementById('period-table-body').innerHTML='<tr><td colspan="9" style="color:#7a90a8;padding:12px;font-size:12px">Carica i dati con ↺ Forza ricarica.</td></tr>';
   }
-  if(!Object.keys(PC).some(k=>PC[k])&&!perfAutoLoaded&&S.positions.some(p=>p.ticker)){
-    // Auto-load on first access
+  if(!hasPCNow&&!perfAutoLoaded&&S.positions.some(function(p){return p.ticker;})){
     perfAutoLoaded=true;
     document.getElementById('perf-status').innerHTML='<span class="spinner"></span>Caricamento automatico dati storici…';
     setTimeout(loadPerfData,600);
