@@ -1411,7 +1411,7 @@ async function loadPerfData(){
     status.innerHTML=`<span class="spinner"></span>${loaded+1}/${positions.length}: ${dt(pos.ticker)}…`;
     try{
       console.log('[PerfLoad] Carico storico per '+pos.ticker+'...');
-      const data=await fetchYChartWithFallback(pos.ticker,'2y');
+      const data=await fetchYChartWithFallback(pos.ticker,'2y',pos.isin);
       console.log('[PerfLoad] OK '+pos.ticker+': '+data.timestamps.length+' punti');
       PC[pos.ticker]=data;
       // Update current price (GBp fix applied inside fetchYChart)
@@ -1538,7 +1538,7 @@ var ETF_DB = [
    tickers:{scalable:'VWRL.DE',trade_republic:'VWRL.DE',degiro:'VWRL.AS',fineco:'VWRL.MI',iwbank:'VWRL.MI',ibkr:'VWRL.L',custom:'VWRL.L'}},
   {name:'SPDR MSCI ACWI IMI',isin:'IE00B3YLTY66',cat:'Azionario Globale',ter:0.17,
    tickers:{scalable:'SPYI.DE',trade_republic:'SPYI.DE',degiro:'SPYI.AS',fineco:'SPYI.MI',iwbank:'SPYI.MI',ibkr:'IMID.L',custom:'IMID.L'}},
-  {name:'Amundi MSCI World',isin:'LU1681043599',cat:'Azionario Globale',ter:0.12,
+  {name:'Amundi MSCI World',isin:'LU1437016972',cat:'Azionario Globale',ter:0.12,
    tickers:{scalable:'LCUW.DE',trade_republic:'LCUW.DE',degiro:'LCUW.AS',fineco:'LCUW.MI',iwbank:'LCUW.MI',ibkr:'CW8.PA',custom:'CW8.PA'}},
   {name:'iShares MSCI World SRI',isin:'IE00BYX2JD69',cat:'Azionario Globale ESG',ter:0.20,
    tickers:{scalable:'SUSW.DE',trade_republic:'SUSW.DE',degiro:'SUSW.AS',fineco:'SUSW.MI',iwbank:'SUSW.MI',ibkr:'SUSW.L',custom:'SUSW.L'}},
@@ -1563,6 +1563,8 @@ var ETF_DB = [
   {name:'iShares MSCI Europe SRI',isin:'IE00B52VJ196',cat:'Azionario Europa ESG',ter:0.20,
    tickers:{scalable:'IESE.DE',trade_republic:'IESE.DE',degiro:'IESE.AS',fineco:'IESE.MI',iwbank:'IESE.MI',ibkr:'IESE.L',custom:'IESE.L'}},
   // ── Azionario Mercati Emergenti ────────────────────────────────────────────
+  {name:'iShares MSCI Emerging Markets (Dist)',isin:'IE00B4L5Y696',cat:'Mercati Emergenti',ter:0.18,
+   tickers:{scalable:'SEMA.DE',trade_republic:'SEMA.DE',degiro:'SEMA.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
   {name:'iShares MSCI Emerging Markets',isin:'IE00B4L5YC18',cat:'Mercati Emergenti',ter:0.18,
    tickers:{scalable:'IS3N.DE',trade_republic:'IS3N.DE',degiro:'EMIM.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
   {name:'Vanguard FTSE Emerging Markets',isin:'IE00B3VVMM84',cat:'Mercati Emergenti',ter:0.22,
@@ -1644,6 +1646,18 @@ var ETF_DB = [
   {name:'iShares Edge MSCI World Value Factor',isin:'IE00BP3QZD73',cat:'Factor Investing',ter:0.30,
    tickers:{scalable:'IS3S.DE',trade_republic:'IS3S.DE',degiro:'IS3S.DE',fineco:'IS3S.MI',iwbank:'IS3S.MI',ibkr:'IWVL.L',custom:'IWVL.L'}},
 ];
+
+
+// ═══ ISIN → TICKER PER BROKER ════════════════════════════════════════════════
+function getTickerForBroker(isin, fallbackTicker){
+  if(!isin) return fallbackTicker;
+  var broker=S.broker||'scalable';
+  var etf=ETF_DB.find(function(e){return e.isin===isin;});
+  if(etf&&etf.tickers&&etf.tickers[broker]){
+    return etf.tickers[broker];
+  }
+  return fallbackTicker;
+}
 
 // Cerca ETF per query e broker
 function searchETF(query, broker){
@@ -1823,8 +1837,10 @@ async function fetchViaWorker(ticker, range) {
   }
 }
 
-async function fetchYChart(ticker,range){
-  const yticker=typeof yTicker!=='undefined'?yTicker(ticker):ticker;
+async function fetchYChart(ticker,range,isin){
+  // Usa ticker broker da ISIN se disponibile
+  var rawTicker=getTickerForBroker?getTickerForBroker(isin||'',ticker):ticker;
+  const yticker=typeof yTicker!=='undefined'?yTicker(rawTicker):rawTicker;
   // 1. Cloudflare Worker (fonte primaria se configurato)
   if(WORKER_URL){
     try{
@@ -1864,7 +1880,7 @@ async function fetchYChartWithFallback(ticker, range, isin){
   var effectiveISIN = isin || ISIN_MAP[ticker] || ISIN_MAP[yTicker(ticker)];
   // 1. Prova Yahoo Finance
   try{
-    return await fetchYChart(ticker, range);
+    return await fetchYChart(ticker, range, isin);
   }catch(yahooErr){
     console.warn('Yahoo storico fallito per '+ticker+', provo JustETF...');
   }
