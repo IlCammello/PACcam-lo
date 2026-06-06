@@ -1234,7 +1234,7 @@ function bpac(){
 // ═══ PORTFOLIO PERIOD VIEW ══════════════════════════════════════════════════
 var _portPeriod = 'max';
 var PORT_PERIODS = {
-  'cur': {label:'Attuale', d:null},
+  '1d': {label:'1 Giorno', d:1},
   '1w':  {label:'1 Settimana', d:7},
   '1m':  {label:'1 Mese', d:30},
   '3m':  {label:'3 Mesi', d:90},
@@ -1247,7 +1247,7 @@ var PORT_PERIODS = {
 function initPortPills(){
   var bar=document.getElementById('port-period-bar');if(!bar)return;
   var pills=[
-    {k:'cur',l:'Attuale'},{k:'1w',l:'1S'},{k:'1m',l:'1M'},
+    {k:'1d',l:'1G'},{k:'1w',l:'1S'},{k:'1m',l:'1M'},
     {k:'3m',l:'3M'},{k:'ytd',l:'YTD'},{k:'1y',l:'1A'},{k:'max',l:'Max'}
   ];
   bar.innerHTML='<span style="font-size:11px;color:#7a90a8;margin-right:4px">Rendimento:</span>'+
@@ -1265,6 +1265,14 @@ function setPortPeriod(per){
     b.style.cssText=S_BASE+(isAct?S_ACT:'');
   });
   rport();
+  // Ri-applica stile attivo dopo render (rport ricrea i bottoni)
+  setTimeout(function(){
+    var S_BASE='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;';
+    var S_ACT='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
+    document.querySelectorAll('#port-period-bar button[data-period]').forEach(function(b){
+      b.style.cssText=S_BASE+(b.getAttribute('data-period')===_portPeriod?S_ACT:'');
+    });
+  },30);
 }
 
 
@@ -1312,7 +1320,7 @@ function drawSparkline(canvasId, ticker){
 }
 
 function getPortPeriodReturn(ticker){
-  if(_portPeriod==='cur') return null;
+  if(_portPeriod==='cur'||_portPeriod==='attuale') return null;
   const h=PC[ticker]; if(!h||!h.timestamps) return null;
   const per=PORT_PERIODS[_portPeriod];
   if(per.ytd) return calcYTD(h);
