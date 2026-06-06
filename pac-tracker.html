@@ -388,7 +388,7 @@ details[open] summary{margin-bottom:10px}
 #drw-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
   backdrop-filter:blur(3px);z-index:150}
 #drw-ov.open{display:block}
-#drw{position:fixed;right:0;top:0;bottom:0;width:440px;max-width:100vw;
+#drw{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:92vw;
   background:var(--surface);border-left:1px solid var(--border);
   overflow-y:auto;z-index:151;
   transform:translateX(105%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
@@ -4201,7 +4201,7 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 // Forza ordine dashboard con perf prima
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
-if('ontouchstart' in window||navigator.maxTouchPoints>0)document.body.classList.add('is-mobile');
+if(!window.electronAPI&&('ontouchstart' in window||navigator.maxTouchPoints>0))document.body.classList.add('is-mobile');
 loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
 // Auto-carica dati storici in background se non presenti
 setTimeout(function(){
