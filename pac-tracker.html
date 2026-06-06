@@ -403,7 +403,7 @@ details[open] summary{margin-bottom:10px}
 .drw-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;
   padding:2px 7px;border-radius:6px;flex-shrink:0;line-height:1;transition:all .15s}
 .drw-close:hover{background:var(--surface2);color:var(--text)}
-#drw-bd{padding:20px}
+#drw-bd{padding:16px 20px}
 .drw-sec{margin-bottom:22px}
 .drw-sec-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
   letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
@@ -2356,21 +2356,22 @@ function openDrawer(posId){
   const gl=cp.totalCost>0?cp.gain:null;
   const glp=cp.totalCost>0?cp.gainPct:null;
   var glColor=gl>=0?'#4ade9e':'#f87171';
-  const priceHero='<div style="padding:16px 0 20px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:20px;text-align:center">'+
-    '<div style="font-size:36px;font-weight:700;letter-spacing:-.02em;color:#e8e9ea">'+(curP>0?fEur(curP):'—')+'</div>'+
-    (pos.priceCur?'<div style="font-size:11px;color:#4a5568;margin-top:2px">'+pos.priceCur+'</div>':'')+
-    (gl!==null?'<div style="font-size:18px;font-weight:600;color:'+glColor+';margin-top:8px">'+fEur(gl)+'  <span style="font-size:14px;opacity:0.85">('+fPct(glp)+')</span></div>':'')+
-    (pos.priceUpdatedAt?'<div style="font-size:10px;color:#4a5568;margin-top:6px">Aggiornato '+fTs(pos.priceUpdatedAt)+'</div>':'')+
+  const priceHero='<div style="padding:12px 0 14px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">'+
+    '<div>'+
+      '<div style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#e8e9ea">'+(curP>0?fEur(curP):'—')+'</div>'+
+      (pos.priceUpdatedAt?'<div style="font-size:10px;color:#4a5568;margin-top:2px">Agg. '+fTs(pos.priceUpdatedAt)+'</div>':'')+
+    '</div>'+
+    (gl!==null?'<div style="text-align:right"><div style="font-size:16px;font-weight:700;color:'+glColor+'">'+fEur(gl)+'</div><div style="font-size:13px;color:'+glColor+';opacity:0.85">'+fPct(glp)+'</div></div>':'')+
   '</div>';
   // Mini chart
   const hasPerfData=PC[pos.ticker]&&PC[pos.ticker].timestamps?.length;
   const miniChart=hasPerfData
-    ?`<div class="drw-sec"><div class="drw-sec-title">Andamento 12 Mesi</div><div style="height:110px;position:relative"><canvas id="drw-c-${posId}"></canvas></div></div>`
+    ?`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Andamento 12 Mesi</div><div style="height:80px;position:relative"><canvas id="drw-c-${posId}"></canvas></div></div>`
     :`<div class="drw-sec"><div style="text-align:center;padding:14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.5">Carica i dati in <strong>📈 Performance</strong><br>per vedere il grafico del prezzo</div></div>`;
   // Stats
-  var SC_='background:#161e2e;border-radius:8px;padding:11px 12px;box-sizing:border-box;flex:0 0 48%;max-width:48%';
-  var SL_='font-size:10px;color:#7a90a8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em';
-  var SV_='font-family:monospace;font-size:14px;font-weight:500;color:#e8e9ea';
+  var SC_='background:#161e2e;border-radius:6px;padding:8px 10px;box-sizing:border-box;flex:0 0 48%;max-width:48%';
+  var SL_='font-size:9px;color:#7a90a8;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em';
+  var SV_='font-family:monospace;font-size:13px;font-weight:600;color:#e8e9ea';
   const stats='<div style="margin-bottom:22px">'+
     '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Posizione</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
@@ -2387,13 +2388,13 @@ function openDrawer(posId){
     var rows=arr.slice(0,7).map(function(c){
       var pct=(c.w*100).toFixed(0);
       var color=cmap[c.l]||'#e8b84b';
-      return'<div style="margin-bottom:8px">'+
+      return'<div style="margin-bottom:5px">'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:3px">'+
           '<span style="font-size:11px;color:#7a90a8">'+c.l+'</span>'+
           '<span style="font-size:11px;font-weight:600;color:#e8e9ea">'+pct+'%</span>'+
         '</div>'+
-        '<div style="height:4px;background:#161e2e;border-radius:2px">'+
-          '<div style="height:4px;border-radius:2px;background:'+color+';width:'+pct+'%"></div>'+
+        '<div style="height:3px;background:#161e2e;border-radius:2px">'+
+          '<div style="height:3px;border-radius:2px;background:'+color+';width:'+pct+'%"></div>'+
         '</div>'+
       '</div>';
     }).join('');
@@ -2401,8 +2402,12 @@ function openDrawer(posId){
       '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">'+title+'</div>'+
       rows+'</div>';
   };
-  if(pos.countryComp&&pos.countryComp.length)compHtml+=mkBars2(pos.countryComp,CC,'Esposizione Geografica');
-  if(pos.sectorComp&&pos.sectorComp.length)compHtml+=mkBars2(pos.sectorComp,SC,'Composizione Settoriale');
+  if((pos.countryComp&&pos.countryComp.length)||(pos.sectorComp&&pos.sectorComp.length)){
+    compHtml+='<div style="display:flex;gap:16px;margin-bottom:16px">';
+    if(pos.countryComp&&pos.countryComp.length)compHtml+='<div style="flex:1;min-width:0">'+mkBars2(pos.countryComp,CC,'Geografica')+'</div>';
+    if(pos.sectorComp&&pos.sectorComp.length)compHtml+='<div style="flex:1;min-width:0">'+mkBars2(pos.sectorComp,SC,'Settoriale')+'</div>';
+    compHtml+='</div>';
+  }
     // Transactions — redesign
   const txs=S.transactions.filter(t=>t.positionId===posId).sort((a,b)=>b.date.localeCompare(a.date));
   var txHtml='';
@@ -2410,7 +2415,7 @@ function openDrawer(posId){
     var txRows=txs.slice(0,10).map(function(t){
       var tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
       var d=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}):'—';
-      return'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'+
+      return'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'+
         '<div>'+
           '<div style="font-size:12px;font-weight:600;color:#e8e9ea">'+d+'</div>'+
           '<div style="font-size:11px;color:#4a5568;margin-top:2px">'+fNum(parseNum(t.shares),4)+' quote @ '+fEur(parseNum(t.price))+(parseNum(t.fees)>0?' + '+fEur(parseNum(t.fees)):'')+' </div>'+
@@ -2419,7 +2424,7 @@ function openDrawer(posId){
         '<div style="font-size:13px;font-weight:700;color:#e8b84b;white-space:nowrap;margin-left:8px">'+fEur(tot)+'</div>'+
       '</div>';
     }).join('');
-    txHtml='<div style="margin-bottom:20px">'+
+    txHtml='<div style="margin-bottom:14px">'+
       '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Storico Acquisti ('+txs.length+')</div>'+
       txRows+'</div>';
   }
@@ -2451,12 +2456,17 @@ function buildMiniChart(posId,ticker){
   for(let i=0;i<h.timestamps.length;i++){if(h.timestamps[i]>=cut&&h.closes[i]!=null)pts.push({x:new Date(h.timestamps[i]*1000).toISOString().slice(0,10),y:h.closes[i]});}
   if(!pts.length)return;
   const isUp=pts[pts.length-1].y>=pts[0].y;
+  var ptsFiltered=pts.filter(function(_,i){return i%3===0;});
   CH['drw-'+posId]=new Chart(ctx,{type:'line',
-    data:{datasets:[{data:pts.filter((_,i)=>i%2===0),borderColor:isUp?'#4ade9e':'#f76d6d',backgroundColor:isUp?'rgba(74,222,158,.1)':'rgba(247,109,109,.08)',fill:true,tension:.3,borderWidth:1.5,pointRadius:0}]},
-    options:{responsive:true,maintainAspectRatio:false,parsing:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fEur(c.raw.y)}`}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:7}},
-        y:{grid:{color:'rgba(38,48,64,.6)'},ticks:{color:'#7a90a8',font:{size:9},callback:v=>fEur(v,0),maxTicksLimit:4},position:'right'}}}});
+    data:{labels:ptsFiltered.map(function(p){return p.x;}),
+          datasets:[{data:ptsFiltered.map(function(p){return p.y;}),
+            borderColor:isUp?'#4ade9e':'#f76d6d',
+            backgroundColor:isUp?'rgba(74,222,158,.1)':'rgba(247,109,109,.08)',
+            fill:true,tension:.3,borderWidth:1.5,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return fEur(c.raw);}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:5}},
+        y:{grid:{color:'rgba(38,48,64,.6)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return fEur(v,0);},maxTicksLimit:4},position:'right'}}}});
 }
 
 // ─── Dashboard filter ──────────────────────────────────────────────────────
