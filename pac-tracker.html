@@ -2732,8 +2732,10 @@ function rperf(){
   } else {
     var hmEl=document.getElementById('hm-inner');
     var ptEl=document.getElementById('per-table');
-    if(hmEl)hmEl.innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
-    if(ptEl)ptEl.innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
+  var loadMsg='<div style="display:flex;align-items:center;gap:8px;padding:12px;color:#7a90a8;font-size:13px">'+
+      '<span class="spinner"></span> Caricamento dati storici in corso...</div>';
+    if(hmEl)hmEl.innerHTML=loadMsg;
+    if(ptEl)ptEl.innerHTML=loadMsg;
   }
   if(!hasPCNow&&!perfAutoLoaded&&S.positions.some(function(p){return p.ticker;})){
     perfAutoLoaded=true;
@@ -3995,6 +3997,16 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
 loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
+// Auto-carica dati storici in background se non presenti
+setTimeout(function(){
+  var hasPCData=Object.keys(PC).some(function(k){
+    return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;
+  });
+  if(!hasPCData&&S.positions&&S.positions.some(function(p){return p.ticker;})){
+    console.log('[PACcamelo] Auto-caricamento dati storici in background...');
+    loadPerfData();
+  }
+}, 3000);
 
 updateDB();initTips();initTabDrag();autoRefreshCheck();setTimeout(function(){updateBottomNav('dashboard');},100);
 // Auto-load performance data on startup
