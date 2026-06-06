@@ -2606,7 +2606,8 @@ function rHeatmap(cp,tv){
   h+='</tr></thead><tbody>';
   pos.forEach(function(p){
     var rets=monthlyRet(PC[p.ticker]);
-    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;white-space:nowrap;color:var(--text)">'+p.ticker+'</td>';
+    var shortName=p.name?p.name.replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim().slice(0,22):p.ticker;
+    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;white-space:nowrap;color:var(--text);min-width:120px"><div style="font-size:11px;font-weight:600">'+shortName+'</div><div style="font-size:9px;color:#4a5568">'+p.ticker+'</div></td>';
     months.forEach(function(m){
       var v=rets[m]!=null?rets[m]:null;
       h+='<td style="padding:3px;text-align:center;background:'+hmBg(v)+';color:'+hmTxt(v)+';border-radius:3px">';
@@ -2633,7 +2634,7 @@ function rPeriodTable(cp,tv){
     return'<span style="color:'+color+';font-weight:600">'+(val>=0?'+':'')+val.toFixed(1)+'%</span>';
   }
 
-  var isMob=window.innerWidth<600;
+  var isMob=window.innerWidth<900;
 
   if(isMob){
     // Layout card su mobile
@@ -2646,8 +2647,9 @@ function rPeriodTable(cp,tv){
       }).join('');
       var tc=p.totalCost>0?p.gainPct:null;
       return'<div style="background:#0f1520;border:1px solid #1e2a3a;border-radius:10px;padding:12px;margin-bottom:10px">'+
-        '<div style="font-weight:700;font-size:13px;color:#e8e9ea;margin-bottom:8px">'+p.ticker+
-        ' <span style="font-size:10px;color:#7a90a8;font-weight:400">'+p.name.slice(0,25)+'</span></div>'+
+        '<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;color:#e8e9ea">'+
+        (p.name||p.ticker).replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim().slice(0,28)+
+        '</div><div style="font-size:10px;color:#4a5568;margin-top:1px">'+p.ticker+'</div></div>'+
         rows+
         '<div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px">'+
         '<span style="color:#7a90a8;font-size:12px">Dal mio acq.</span>'+pv(tc)+'</div>'+
@@ -2676,8 +2678,8 @@ function rPeriodTable(cp,tv){
     var rows='';
     pos.forEach(function(p){
       rows+='<tr style="border-bottom:1px solid var(--border)">';
-      rows+='<td style="padding:8px;white-space:nowrap"><div style="font-weight:600;font-size:12px">'+p.ticker+'</div>'+
-        '<div style="font-size:10px;color:var(--text-muted)">'+p.name.replace(/iShares|Amundi|Xtrackers|VanEck/gi,'').trim().slice(0,20)+'</div></td>';
+      rows+='<td style="padding:8px;white-space:nowrap"><div style="font-weight:600;font-size:12px">'+(p.name||p.ticker).replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim().slice(0,22)+'</div>'+
+        '<div style="font-size:10px;color:var(--text-muted)">'+p.ticker+'</div></td>';
       PERF_PERIODS.forEach(function(per){rows+='<td style="padding:8px;text-align:center">'+pv(getR(p.ticker,per))+'</td>';});
       rows+='<td style="padding:8px;text-align:center">'+pv(p.totalCost>0?p.gainPct:null)+'</td>';
       rows+='</tr>';
