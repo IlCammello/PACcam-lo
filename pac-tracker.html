@@ -1512,11 +1512,13 @@ function obSkip(){ obFinish(); }
 function startOnboarding(){
   _obStep=0;
   document.getElementById('ob-next').onclick=function(){obNav(1);};
-  document.getElementById('onboarding-overlay').style.display='flex';
+  document.getElementById('onboarding-overlay').style.cssText='display:flex;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px';
   obRender();
 }
 
 function checkOnboarding(){
+  var ov=document.getElementById('onboarding-overlay');
+  if(ov)ov.style.display='none'; // sempre nascosto di default
   if(!localStorage.getItem('pac_onboarding_done')){
     setTimeout(startOnboarding, 800);
   }
@@ -4479,7 +4481,7 @@ function switchSettingsTab(tab){
 
 
 <!-- ═══ ONBOARDING ═══════════════════════════════════════════════════════════ -->
-<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px">
   <div style="max-width:480px;width:100%;text-align:center">
     <!-- Step indicator -->
     <div id="ob-steps" style="display:flex;gap:6px;justify-content:center;margin-bottom:32px">
