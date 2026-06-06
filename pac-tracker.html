@@ -2490,7 +2490,7 @@ function hmBg(v){
 function hmTxt(v){return(v===null)?'var(--text-muted)':Math.abs(v)>5?'#fff':'var(--text)';}
 
 function rHeatmap(cp,tv){
-  var el=document.getElementById('heatmap-body');if(!el)return;
+  var el=document.getElementById('hm-inner');if(!el)return;
   var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps;});
   if(!pos.length){
     el.innerHTML='<p style="color:var(--text-muted);font-size:12px;padding:8px">Carica i dati storici con "↺ Forza ricarica".</p>';
@@ -2523,7 +2523,7 @@ function rHeatmap(cp,tv){
 }
 
 function rPeriodTable(cp,tv){
-  const el=document.getElementById('period-table-body');if(!el)return;
+  const el=document.getElementById('per-table');if(!el)return;
   const pos=cp.filter(p=>p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0);
   if(!pos.length){
     // Controlla se ci sono dati in PC ma senza timestamps
@@ -2600,8 +2600,10 @@ function rperf(){
     rHeatmap(cp,tv);rPeriodTable(cp,tv);
     initPeriodPills();renderPeriodChart(selPeriod);
   } else {
-    document.getElementById('heatmap-body').innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
-    document.getElementById('period-table-body').innerHTML='<tr><td colspan="9" style="color:#7a90a8;padding:12px;font-size:12px">Carica i dati con ↺ Forza ricarica.</td></tr>';
+    var hmEl=document.getElementById('hm-inner');
+    var ptEl=document.getElementById('per-table');
+    if(hmEl)hmEl.innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
+    if(ptEl)ptEl.innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
   }
   if(!hasPCNow&&!perfAutoLoaded&&S.positions.some(function(p){return p.ticker;})){
     perfAutoLoaded=true;
