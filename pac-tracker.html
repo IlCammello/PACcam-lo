@@ -2355,12 +2355,13 @@ function openDrawer(posId){
   const curP=parseNum(pos.currentPrice)||0;
   const gl=cp.totalCost>0?cp.gain:null;
   const glp=cp.totalCost>0?cp.gainPct:null;
-  const priceHero=`<div style="text-align:center;padding:16px 0 18px;border-bottom:1px solid var(--border);margin-bottom:20px">
-    <div class="num" style="font-size:34px;font-weight:500;letter-spacing:-.04em">${curP>0?fEur(curP):'—'}</div>
-    ${pos.priceCur?`<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${pos.priceCur}</div>`:''}
-    ${gl!==null?`<div class="num" style="font-size:17px;color:${gl>=0?'var(--green)':'var(--red)'};margin-top:8px">${fEur(gl)} &nbsp;<span style="font-size:13px">(${fPct(glp)})</span></div>`:''}
-    ${pos.priceUpdatedAt?`<div style="font-size:10px;color:var(--text-muted);margin-top:5px">Prezzo aggiornato ${fTs(pos.priceUpdatedAt)}</div>`:''}
-  </div>`;
+  var glColor=gl>=0?'#4ade9e':'#f87171';
+  const priceHero='<div style="padding:16px 0 20px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:20px;text-align:center">'+
+    '<div style="font-size:36px;font-weight:700;letter-spacing:-.02em;color:#e8e9ea">'+(curP>0?fEur(curP):'—')+'</div>'+
+    (pos.priceCur?'<div style="font-size:11px;color:#4a5568;margin-top:2px">'+pos.priceCur+'</div>':'')+
+    (gl!==null?'<div style="font-size:18px;font-weight:600;color:'+glColor+';margin-top:8px">'+fEur(gl)+'  <span style="font-size:14px;opacity:0.85">('+fPct(glp)+')</span></div>':'')+
+    (pos.priceUpdatedAt?'<div style="font-size:10px;color:#4a5568;margin-top:6px">Aggiornato '+fTs(pos.priceUpdatedAt)+'</div>':'')+
+  '</div>';
   // Mini chart
   const hasPerfData=PC[pos.ticker]&&PC[pos.ticker].timestamps?.length;
   const miniChart=hasPerfData
@@ -2379,30 +2380,50 @@ function openDrawer(posId){
       '<div style="'+SC_+'"><div style="'+SL_+'">Valore Attuale</div><div style="'+SV_+'">'+fEur(cp.currentVal)+'</div></div>'+
     '</div>'+
   '</div>';
-  // Composition bars
-  let compHtml='';
-  const mkBars=(arr,cmap,w)=>arr.slice(0,7).map(c=>`<div class="drw-comp-row">
-    <div style="width:${w}px;text-align:right;font-size:10px;color:var(--text-muted)">${c.l}</div>
-    <div class="drw-comp-track"><div class="drw-comp-fill" style="width:${(c.w*100).toFixed(0)}%;background:${cmap[c.l]||'var(--accent)'}"></div></div>
-    <div style="width:32px;text-align:right;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${(c.w*100).toFixed(0)}%</div>
-  </div>`).join('');
-  if(pos.countryComp?.length)compHtml+=`<div class="drw-sec"><div class="drw-sec-title">Esposizione Geografica</div>${mkBars(pos.countryComp,CC,90)}</div>`;
-  if(pos.sectorComp?.length)compHtml+=`<div class="drw-sec"><div class="drw-sec-title">Composizione Settoriale</div>${mkBars(pos.sectorComp,SC,120)}</div>`;
-  // Transactions
+  // Composition bars — redesign con barre orizzontali visibili
+  var compHtml='';
+  var mkBars2=function(arr,cmap,title){
+    if(!arr||!arr.length)return'';
+    var rows=arr.slice(0,7).map(function(c){
+      var pct=(c.w*100).toFixed(0);
+      var color=cmap[c.l]||'#e8b84b';
+      return'<div style="margin-bottom:8px">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px">'+
+          '<span style="font-size:11px;color:#7a90a8">'+c.l+'</span>'+
+          '<span style="font-size:11px;font-weight:600;color:#e8e9ea">'+pct+'%</span>'+
+        '</div>'+
+        '<div style="height:4px;background:#161e2e;border-radius:2px">'+
+          '<div style="height:4px;border-radius:2px;background:'+color+';width:'+pct+'%"></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    return'<div style="margin-bottom:20px">'+
+      '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">'+title+'</div>'+
+      rows+'</div>';
+  };
+  if(pos.countryComp&&pos.countryComp.length)compHtml+=mkBars2(pos.countryComp,CC,'Esposizione Geografica');
+  if(pos.sectorComp&&pos.sectorComp.length)compHtml+=mkBars2(pos.sectorComp,SC,'Composizione Settoriale');
+    // Transactions — redesign
   const txs=S.transactions.filter(t=>t.positionId===posId).sort((a,b)=>b.date.localeCompare(a.date));
-  let txHtml='';
+  var txHtml='';
   if(txs.length){
-    txHtml=`<div class="drw-sec"><div class="drw-sec-title">Storico Acquisti (${txs.length})</div>`+
-      txs.slice(0,10).map(t=>{const tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
-        return`<div class="drw-tx-row">
-          <div><div style="font-size:12px;font-weight:500">${t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}):'—'}</div>
-          <div style="font-size:10px;color:var(--text-muted)">${fNum(parseNum(t.shares),4)} quote @ ${fEur(parseNum(t.price))}${parseNum(t.fees)>0?' + '+fEur(parseNum(t.fees))+' comm.':''}</div>
-          ${t.notes?`<div style="font-size:10px;color:var(--text-muted);font-style:italic">${esc(t.notes)}</div>`:''}</div>
-          <div class="num" style="font-size:13px;font-weight:600">${fEur(tot)}</div>
-        </div>`;
-      }).join('')+`</div>`;
+    var txRows=txs.slice(0,10).map(function(t){
+      var tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
+      var d=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}):'—';
+      return'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'+
+        '<div>'+
+          '<div style="font-size:12px;font-weight:600;color:#e8e9ea">'+d+'</div>'+
+          '<div style="font-size:11px;color:#4a5568;margin-top:2px">'+fNum(parseNum(t.shares),4)+' quote @ '+fEur(parseNum(t.price))+(parseNum(t.fees)>0?' + '+fEur(parseNum(t.fees)):'')+' </div>'+
+          (t.notes?'<div style="font-size:10px;color:#4a5568;font-style:italic">'+esc(t.notes)+'</div>':'')+
+        '</div>'+
+        '<div style="font-size:13px;font-weight:700;color:#e8b84b;white-space:nowrap;margin-left:8px">'+fEur(tot)+'</div>'+
+      '</div>';
+    }).join('');
+    txHtml='<div style="margin-bottom:20px">'+
+      '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Storico Acquisti ('+txs.length+')</div>'+
+      txRows+'</div>';
   }
-  // Actions
+    // Actions
   const actions=`<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
     <button class="btn btn-ghost" style="flex:1;justify-content:center;min-width:130px" onclick="closeDrawer();openPriceModal('${posId}',${curP})">💰 Aggiorna Prezzo</button>
     <button class="btn btn-primary" style="flex:1;justify-content:center;min-width:130px" onclick="closeDrawer();switchTab('transactions');setTimeout(()=>{openModal('transaction');document.getElementById('tx-pos').value='${posId}'},80)">+ Aggiungi Acquisto</button>
