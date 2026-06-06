@@ -2428,6 +2428,67 @@ var PERF_PERIODS=[
   {k:'5y',  l:'5A',  d:1825},
 ];
 
+
+// ═══ MONTHLY RETURNS HEATMAP ════════════════════════════════════════════════
+function monthlyRet(h){
+  if(!h||!h.timestamps||!h.timestamps.length||!h.closes||!h.closes.length)return{};
+  var ts=h.timestamps,cs=h.closes,byM={};
+  for(var i=0;i<ts.length;i++){
+    if(cs[i]==null)continue;
+    var d=new Date(ts[i]*1000);
+    var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(!byM[k])byM[k]={first:cs[i],last:cs[i]};
+    else byM[k].last=cs[i];
+  }
+  var ret={};
+  Object.keys(byM).forEach(function(k){
+    var f=byM[k].first,l=byM[k].last;
+    ret[k]=f>0?(l-f)/f*100:null;
+  });
+  return ret;
+}
+
+function hmBg(v){
+  if(v===null||v===undefined)return'var(--surface2)';
+  var intensity=Math.min(Math.abs(v)/10,1);
+  if(v>=0)return'rgba(74,222,158,'+(0.15+intensity*0.55)+')';
+  return'rgba(248,113,113,'+(0.15+intensity*0.55)+')';
+}
+function hmTxt(v){return(v===null)?'var(--text-muted)':Math.abs(v)>5?'#fff':'var(--text)';}
+
+function rHeatmap(cp,tv){
+  var el=document.getElementById('heatmap-body');if(!el)return;
+  var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps;});
+  if(!pos.length){
+    el.innerHTML='<p style="color:var(--text-muted);font-size:12px;padding:8px">Carica i dati storici con "↺ Forza ricarica".</p>';
+    return;
+  }
+  var allMonths=new Set();
+  pos.forEach(function(p){Object.keys(monthlyRet(PC[p.ticker])).forEach(function(m){allMonths.add(m);});});
+  var months=[...allMonths].sort().slice(-18);
+  var h='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h+='<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--text-muted)">ETF</th>';
+  months.forEach(function(m){
+    var parts=m.split('-');
+    var lbl=new Date(parts[0],parts[1]-1).toLocaleDateString('it-IT',{month:'short',year:'2-digit'});
+    h+='<th style="padding:4px 3px;color:var(--text-muted);text-align:center;min-width:38px">'+lbl+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  pos.forEach(function(p){
+    var rets=monthlyRet(PC[p.ticker]);
+    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;white-space:nowrap;color:var(--text)">'+p.ticker+'</td>';
+    months.forEach(function(m){
+      var v=rets[m]!=null?rets[m]:null;
+      h+='<td style="padding:3px;text-align:center;background:'+hmBg(v)+';color:'+hmTxt(v)+';border-radius:3px">';
+      h+=v!==null?v.toFixed(1)+'%':'—';
+      h+='</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML=h;
+}
+
 function rPeriodTable(cp,tv){
   const el=document.getElementById('period-table-body');if(!el)return;
   const pos=cp.filter(p=>p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0);
