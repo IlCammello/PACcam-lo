@@ -1417,6 +1417,103 @@ async function loadPerfData(){
 
 // ═══ AUTO-POPOLA ISIN sulle posizioni esistenti ═══════════════════════════════
 
+
+// ═══ ONBOARDING ═════════════════════════════════════════════════════════════
+var _obStep = 0;
+var OB_STEPS = [
+  {
+    icon: '🐪',
+    title: 'Benvenuto in PACcamélo',
+    body: 'Il tracker per il tuo piano di accumulo. Tieni traccia di tutti i tuoi ETF, monitora i rendimenti e pianifica il futuro — tutto in un posto.',
+    next: 'Inizia →'
+  },
+  {
+    icon: '🏦',
+    title: 'Scegli il tuo broker',
+    body: '<p style="margin-bottom:16px;color:#7a90a8;font-size:14px">Da quale piattaforma acquisti i tuoi ETF?</p><div id="ob-broker-list" style="display:flex;flex-direction:column;gap:8px;text-align:left"></div>',
+    next: 'Avanti →',
+    setup: 'obSetupBroker'
+  },
+  {
+    icon: '➕',
+    title: 'Aggiungi la prima posizione',
+    body: 'Vai in <strong style="color:#e8b84b">Portafoglio</strong> → clicca <strong style="color:#e8b84b">+ Aggiungi</strong>.<br><br>Inserisci il nome, il ticker e i tuoi acquisti passati. Puoi aggiungere più acquisti per lo stesso ETF.',
+    next: 'Avanti →'
+  },
+  {
+    icon: '📈',
+    title: 'Carica i dati storici',
+    body: 'Per vedere grafici e rendimenti storici, vai in <strong style="color:#e8b84b">Performance</strong> e clicca <strong style="color:#e8b84b">↺ Forza ricarica</strong>.<br><br>Serve solo al primo avvio — poi i dati vengono salvati automaticamente.',
+    next: '🚀 Inizia a usare l\'app'
+  }
+];
+
+function obRender(){
+  var step=OB_STEPS[_obStep];
+  document.getElementById('ob-content').innerHTML=
+    '<div style="font-size:64px;margin-bottom:16px">'+step.icon+'</div>'+
+    '<h2 style="font-size:22px;font-weight:700;color:#e8e9ea;margin-bottom:12px">'+step.title+'</h2>'+
+    '<p style="font-size:15px;color:#7a90a8;line-height:1.6">'+step.body+'</p>';
+  document.getElementById('ob-next').textContent=step.next||'Avanti →';
+  document.getElementById('ob-back').style.display=_obStep>0?'block':'none';
+  // Aggiorna dots
+  document.querySelectorAll('.ob-dot').forEach(function(d,i){
+    d.classList.toggle('ob-dot-active',i===_obStep);
+  });
+  if(step.setup && typeof window[step.setup]==='function') window[step.setup]();
+}
+
+function obSetupBroker(){
+  setTimeout(function(){
+    var el=document.getElementById('ob-broker-list');if(!el)return;
+    var brokers=typeof BROKERS!=='undefined'?BROKERS:[];
+    el.innerHTML=brokers.map(function(b){
+      var isAct=(S.broker||'scalable')===b.id;
+      return '<button onclick="obSelectBroker(\''+b.id+'\')" data-bid="'+b.id+'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(isAct?'rgba(232,184,75,0.12)':'#161e2e')+';border:'+(isAct?'1px solid #e8b84b':'1px solid #263040')+';border-radius:8px;cursor:pointer;color:'+(isAct?'#e8b84b':'#7a90a8')+';font-size:13px;width:100%">'+
+        '<span style="font-size:18px">'+b.flag+'</span>'+
+        '<div style="text-align:left"><div style="font-weight:600">'+b.name+'</div><div style="font-size:11px;opacity:0.7">'+b.note+'</div></div>'+
+        (isAct?'<span style="margin-left:auto">✓</span>':'')+
+        '</button>';
+    }).join('');
+  },50);
+}
+
+function obSelectBroker(id){
+  S.broker=id; saveS();
+  obSetupBroker();
+}
+
+function obNav(dir){
+  _obStep=Math.max(0,Math.min(OB_STEPS.length-1,_obStep+dir));
+  if(_obStep===OB_STEPS.length-1&&dir===1){
+    // Ultimo step - avanti chiude
+    document.getElementById('ob-next').onclick=function(){obFinish();};
+  } else {
+    document.getElementById('ob-next').onclick=function(){obNav(1);};
+  }
+  obRender();
+}
+
+function obFinish(){
+  document.getElementById('onboarding-overlay').style.display='none';
+  localStorage.setItem('pac_onboarding_done','1');
+}
+
+function obSkip(){ obFinish(); }
+
+function startOnboarding(){
+  _obStep=0;
+  document.getElementById('ob-next').onclick=function(){obNav(1);};
+  document.getElementById('onboarding-overlay').style.display='flex';
+  obRender();
+}
+
+function checkOnboarding(){
+  if(!localStorage.getItem('pac_onboarding_done')){
+    setTimeout(startOnboarding, 800);
+  }
+}
+
 // ═══ AUTO-CORREZIONE TICKER (ticker vecchi → corretti) ════════════════════
 var TICKER_CORRECTIONS = {
   'EM1015': 'LYQ6.DE',
@@ -3864,7 +3961,7 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 // Forza ordine dashboard con perf prima
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
-loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();
+loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
 
 updateDB();initTips();initTabDrag();autoRefreshCheck();setTimeout(function(){updateBottomNav('dashboard');},100);
 // Auto-load performance data on startup
@@ -3997,6 +4094,18 @@ function closeSettingsModal(){
   var m=document.getElementById('settings-modal');if(m)m.classList.remove('open');
 }
 function switchSettingsTab(tab){
+  var panels=['spanel-broker','spanel-backup','spanel-drive','spanel-tutorial'];
+  panels.forEach(function(p){var el=document.getElementById(p);if(el)el.style.display='none';});
+  var tabs=['stab-broker','stab-backup','stab-drive','stab-tutorial'];
+  tabs.forEach(function(t){var el=document.getElementById(t);if(el)el.classList.remove('btn-primary');});
+  var panel=document.getElementById('spanel-'+tab);
+  var tabBtn=document.getElementById('stab-'+tab);
+  if(panel)panel.style.display='';
+  if(tabBtn)tabBtn.classList.add('btn-primary');
+  // Legacy broker panel render
+  if(tab==='broker'&&typeof renderBrokerPanel==='function')renderBrokerPanel(document.getElementById('spanel-broker'));
+  return; // Skip old logic below
+
   ['broker','backup','drive'].forEach(function(t){
     var btn=document.getElementById('stab-'+t);
     var p=document.getElementById('spanel-'+t);
@@ -4090,10 +4199,27 @@ function switchSettingsTab(tab){
       <button id="stab-broker" onclick="switchSettingsTab('broker')" class="btn btn-ghost btn-sm" style="flex:1">🏦 Broker</button>
       <button id="stab-backup" onclick="switchSettingsTab('backup')" class="btn btn-ghost btn-sm" style="flex:1">💾 Backup</button>
       <button id="stab-drive" onclick="switchSettingsTab('drive')" class="btn btn-ghost btn-sm" style="flex:1">☁ Drive</button>
+      <button id="stab-tutorial" onclick="switchSettingsTab('tutorial')" class="btn btn-ghost btn-sm" style="flex:1">📖 Tutorial</button>
     </div>
     <div id="spanel-broker">
       <div id="broker-panel-inner"></div>
       <script>document.addEventListener('DOMContentLoaded',function(){if(typeof renderBrokerPanel==='function')renderBrokerPanel(document.getElementById('spanel-broker'));});</script>
+    </div>
+    <div id="spanel-tutorial" style="display:none">
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Rivedi il tutorial introduttivo o leggi la guida rapida per ogni sezione.</p>
+      <button class="btn btn-primary" onclick="closeSettingsModal();startOnboarding()" style="width:100%;margin-bottom:12px">🐪 Rivedi tutorial introduttivo</button>
+      <div style="margin-top:16px">
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">📊 Dashboard</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Panoramica del portafoglio: valore totale, gain/loss, XIRR annualizzato e indicatori di salute del PAC. I grafici mostrano la crescita del capitale nel tempo.</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">💼 Portafoglio</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Lista delle tue posizioni con valore attuale, gain% e sparkline. Usa la barra in cima per vedere il rendimento in diversi periodi storici (richiede dati storici caricati).</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">📈 Performance</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Grafici storici, heatmap dei rendimenti mensili, confronto per periodo e tabella rendimenti. Richiede il primo caricamento con "↺ Forza ricarica".</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">📋 Transazioni</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Storico di tutti gli acquisti effettuati, ordinati per data. Ogni acquisto è modificabile dal drawer della posizione.</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">🧮 Simulatore</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Proietta la crescita futura del portafoglio in base a rendimento atteso e versamenti mensili pianificati.</p></details>
+      </div>
     </div>
     <div id="spanel-backup" style="display:none">
       <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Esporta o importa i dati del portafoglio.</p>
@@ -4108,6 +4234,35 @@ function switchSettingsTab(tab){
     </div>
   </div>
 </div>
+
+
+<!-- ═══ ONBOARDING ═══════════════════════════════════════════════════════════ -->
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:480px;width:100%;text-align:center">
+    <!-- Step indicator -->
+    <div id="ob-steps" style="display:flex;gap:6px;justify-content:center;margin-bottom:32px">
+      <div class="ob-dot ob-dot-active"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+
+    <!-- Step content -->
+    <div id="ob-content"></div>
+
+    <!-- Navigation -->
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:32px">
+      <button id="ob-back" onclick="obNav(-1)" style="display:none;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px">← Indietro</button>
+      <button id="ob-next" onclick="obNav(1)" style="background:#e8b84b;border:none;color:#080c14;padding:10px 32px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700">Inizia →</button>
+    </div>
+    <button onclick="obSkip()" style="background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;margin-top:16px">Salta il tutorial</button>
+  </div>
+</div>
+
+<style>
+.ob-dot{width:8px;height:8px;border-radius:50%;background:#263040;transition:all .2s}
+.ob-dot-active{background:#e8b84b;transform:scale(1.3)}
+</style>
 
 </body>
 </html>
