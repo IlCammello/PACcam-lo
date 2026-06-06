@@ -801,6 +801,14 @@ function updateBottomNav(tab){
 
 <div class="modal-overlay" id="modal-position" onclick="overlayClick(event,'position')"><div class="modal">
   <div class="modal-title" id="pos-modal-title">Aggiungi Strumento</div>
+  <!-- Ricerca ETF dal database -->
+  <div class="form-group full" style="margin-bottom:4px">
+    <label>🔍 Cerca ETF (opzionale)</label>
+    <input id="etf-search" type="text" placeholder="es. MSCI World, S&P 500, Gold..." autocomplete="off"
+      oninput="etfSearchInput(this.value)"
+      style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
+    <div id="etf-suggestions" style="display:none;position:absolute;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);width:calc(100% - 48px)"></div>
+  </div>
   <div class="form-grid">
     <div class="form-group full"><label>Nome</label><input id="pos-name" type="text" placeholder="es. iShares Core MSCI World ETF"></div>
     <div class="form-group"><label>Ticker Yahoo Finance</label><input id="pos-ticker" type="text" placeholder="es. SWDA.L"></div>
@@ -1513,6 +1521,195 @@ function checkOnboarding(){
     setTimeout(startOnboarding, 800);
   }
 }
+
+
+// ═══ ETF DATABASE (50 ETF popolari per investitori italiani) ═════════════════
+var ETF_DB = [
+  // ── Azionario Globale ──────────────────────────────────────────────────────
+  {name:'iShares Core MSCI World',isin:'IE00B4L5Y983',cat:'Azionario Globale',ter:0.20,
+   tickers:{scalable:'EUNL.DE',trade_republic:'EUNL.DE',degiro:'IWDA.AS',fineco:'SWDA.MI',iwbank:'SWDA.MI',ibkr:'SWDA.L',custom:'SWDA.L'}},
+  {name:'Vanguard FTSE All-World',isin:'IE00B3RBWM25',cat:'Azionario Globale',ter:0.22,
+   tickers:{scalable:'VWRL.DE',trade_republic:'VWRL.DE',degiro:'VWRL.AS',fineco:'VWRL.MI',iwbank:'VWRL.MI',ibkr:'VWRL.L',custom:'VWRL.L'}},
+  {name:'SPDR MSCI ACWI IMI',isin:'IE00B3YLTY66',cat:'Azionario Globale',ter:0.17,
+   tickers:{scalable:'SPYI.DE',trade_republic:'SPYI.DE',degiro:'SPYI.AS',fineco:'SPYI.MI',iwbank:'SPYI.MI',ibkr:'IMID.L',custom:'IMID.L'}},
+  {name:'Amundi MSCI World',isin:'LU1681043599',cat:'Azionario Globale',ter:0.12,
+   tickers:{scalable:'LCUW.DE',trade_republic:'LCUW.DE',degiro:'LCUW.AS',fineco:'LCUW.MI',iwbank:'LCUW.MI',ibkr:'CW8.PA',custom:'CW8.PA'}},
+  {name:'iShares MSCI World SRI',isin:'IE00BYX2JD69',cat:'Azionario Globale ESG',ter:0.20,
+   tickers:{scalable:'SUSW.DE',trade_republic:'SUSW.DE',degiro:'SUSW.AS',fineco:'SUSW.MI',iwbank:'SUSW.MI',ibkr:'SUSW.L',custom:'SUSW.L'}},
+  // ── Azionario USA ──────────────────────────────────────────────────────────
+  {name:'iShares Core S&P 500',isin:'IE00B5BMR087',cat:'Azionario USA',ter:0.07,
+   tickers:{scalable:'SXR8.DE',trade_republic:'SXR8.DE',degiro:'CSPX.AS',fineco:'CSPX.MI',iwbank:'CSPX.MI',ibkr:'CSPX.L',custom:'CSPX.L'}},
+  {name:'Vanguard S&P 500',isin:'IE00B3XXRP09',cat:'Azionario USA',ter:0.07,
+   tickers:{scalable:'VUSA.DE',trade_republic:'VUSA.DE',degiro:'VUSA.AS',fineco:'VUSA.MI',iwbank:'VUSA.MI',ibkr:'VUSA.L',custom:'VUSA.L'}},
+  {name:'Amundi S&P 500',isin:'LU1681048804',cat:'Azionario USA',ter:0.15,
+   tickers:{scalable:'500.PA',trade_republic:'500.PA',degiro:'500.PA',fineco:'500.PA',iwbank:'500.PA',ibkr:'500.PA',custom:'500.PA'}},
+  {name:'iShares Nasdaq 100',isin:'IE00B53SZB19',cat:'Azionario USA Tech',ter:0.33,
+   tickers:{scalable:'CNDX.DE',trade_republic:'CNDX.DE',degiro:'CNDX.AS',fineco:'CNDX.MI',iwbank:'CNDX.MI',ibkr:'CNDX.L',custom:'CNDX.L'}},
+  {name:'Xtrackers MSCI USA',isin:'IE00BJK9H753',cat:'Azionario USA',ter:0.07,
+   tickers:{scalable:'XMUS.DE',trade_republic:'XMUS.DE',degiro:'XMUS.DE',fineco:'XMUS.MI',iwbank:'XMUS.MI',ibkr:'XMUS.DE',custom:'XMUS.DE'}},
+  // ── Azionario Europa ──────────────────────────────────────────────────────
+  {name:'Amundi Core Stoxx Europe 600',isin:'LU1681043599',cat:'Azionario Europa',ter:0.07,
+   tickers:{scalable:'MEUD.PA',trade_republic:'MEUD.PA',degiro:'MEUD.PA',fineco:'MEUD.MI',iwbank:'MEUD.MI',ibkr:'MEUD.PA',custom:'MEUD.PA'}},
+  {name:'iShares Core EURO STOXX 50',isin:'IE0008471009',cat:'Azionario Europa',ter:0.10,
+   tickers:{scalable:'EXW1.DE',trade_republic:'EXW1.DE',degiro:'EXW1.DE',fineco:'EXW1.MI',iwbank:'EXW1.MI',ibkr:'EXW1.DE',custom:'EXW1.DE'}},
+  {name:'Vanguard FTSE Developed Europe',isin:'IE00B945VV12',cat:'Azionario Europa',ter:0.10,
+   tickers:{scalable:'VEUR.DE',trade_republic:'VEUR.DE',degiro:'VEUR.AS',fineco:'VEUR.MI',iwbank:'VEUR.MI',ibkr:'VEUR.L',custom:'VEUR.L'}},
+  {name:'iShares MSCI Europe SRI',isin:'IE00B52VJ196',cat:'Azionario Europa ESG',ter:0.20,
+   tickers:{scalable:'IESE.DE',trade_republic:'IESE.DE',degiro:'IESE.AS',fineco:'IESE.MI',iwbank:'IESE.MI',ibkr:'IESE.L',custom:'IESE.L'}},
+  // ── Azionario Mercati Emergenti ────────────────────────────────────────────
+  {name:'iShares MSCI Emerging Markets',isin:'IE00B4L5YC18',cat:'Mercati Emergenti',ter:0.18,
+   tickers:{scalable:'IS3N.DE',trade_republic:'IS3N.DE',degiro:'EMIM.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
+  {name:'Vanguard FTSE Emerging Markets',isin:'IE00B3VVMM84',cat:'Mercati Emergenti',ter:0.22,
+   tickers:{scalable:'VFEM.DE',trade_republic:'VFEM.DE',degiro:'VFEM.AS',fineco:'VFEM.MI',iwbank:'VFEM.MI',ibkr:'VFEM.L',custom:'VFEM.L'}},
+  {name:'Amundi MSCI Emerging Markets',isin:'LU1681045370',cat:'Mercati Emergenti',ter:0.20,
+   tickers:{scalable:'AEEM.PA',trade_republic:'AEEM.PA',degiro:'AEEM.PA',fineco:'AEEM.MI',iwbank:'AEEM.MI',ibkr:'AEEM.PA',custom:'AEEM.PA'}},
+  // ── Azionario Tematico ─────────────────────────────────────────────────────
+  {name:'Xtrackers AI & Big Data',isin:'IE00BGV5VN51',cat:'Tematico Tech',ter:0.35,
+   tickers:{scalable:'XAIX.DE',trade_republic:'XAIX.DE',degiro:'XAIX.DE',fineco:'XAIX.MI',iwbank:'XAIX.MI',ibkr:'XAIX.DE',custom:'XAIX.DE'}},
+  {name:'iShares Global Clean Energy',isin:'IE00B1XNHC34',cat:'Tematico Clean Energy',ter:0.65,
+   tickers:{scalable:'INRG.DE',trade_republic:'INRG.DE',degiro:'INRG.AS',fineco:'INRG.MI',iwbank:'INRG.MI',ibkr:'INRG.L',custom:'INRG.L'}},
+  {name:'iShares Digitalisation',isin:'IE00BYZK4552',cat:'Tematico Tech',ter:0.40,
+   tickers:{scalable:'DGTL.DE',trade_republic:'DGTL.DE',degiro:'DGTL.AS',fineco:'DGTL.MI',iwbank:'DGTL.MI',ibkr:'DGTL.L',custom:'DGTL.L'}},
+  {name:'VanEck Quantum Computing',isin:'IE0005E5A897',cat:'Tematico Tech',ter:0.49,
+   tickers:{scalable:'QNTM.DE',trade_republic:'QNTM.DE',degiro:'QNTM.DE',fineco:'QNTM.MI',iwbank:'QNTM.MI',ibkr:'QNTM.L',custom:'QNTM.L'}},
+  {name:'iShares Automation & Robotics',isin:'IE00BYZK4669',cat:'Tematico Tech',ter:0.40,
+   tickers:{scalable:'RBOT.DE',trade_republic:'RBOT.DE',degiro:'RBOT.AS',fineco:'RBOT.MI',iwbank:'RBOT.MI',ibkr:'RBOT.L',custom:'RBOT.L'}},
+  {name:'L&G Cyber Security',isin:'IE00BYPLS672',cat:'Tematico Tech',ter:0.75,
+   tickers:{scalable:'ISPY.DE',trade_republic:'ISPY.DE',degiro:'ISPY.AS',fineco:'ISPY.MI',iwbank:'ISPY.MI',ibkr:'ISPY.L',custom:'ISPY.L'}},
+  // ── Obbligazionario ────────────────────────────────────────────────────────
+  {name:'iShares Core € Govt Bond',isin:'IE00B4WXJJ64',cat:'Obbligazionario EUR',ter:0.07,
+   tickers:{scalable:'EUN4.DE',trade_republic:'EUN4.DE',degiro:'EUN4.DE',fineco:'EUN4.MI',iwbank:'EUN4.MI',ibkr:'EUN4.DE',custom:'EUN4.DE'}},
+  {name:'Amundi Euro Govt Bond 10-15Y',isin:'LU2421926404',cat:'Obbligazionario EUR',ter:0.14,
+   tickers:{scalable:'LYQ6.DE',trade_republic:'LYQ6.DE',degiro:'LYQ6.DE',fineco:'LYQ6.MI',iwbank:'LYQ6.MI',ibkr:'LYQ6.DE',custom:'LYQ6.DE'}},
+  {name:'iShares € Corp Bond',isin:'IE0032523478',cat:'Obbligazionario Corp EUR',ter:0.20,
+   tickers:{scalable:'IEAC.DE',trade_republic:'IEAC.DE',degiro:'IEAC.AS',fineco:'IEAC.MI',iwbank:'IEAC.MI',ibkr:'IEAC.L',custom:'IEAC.L'}},
+  {name:'Xtrackers EUR Overnight Rate Swap',isin:'LU0290358497',cat:'Monetario EUR',ter:0.10,
+   tickers:{scalable:'XEON.DE',trade_republic:'XEON.DE',degiro:'XEON.DE',fineco:'XEON.MI',iwbank:'XEON.MI',ibkr:'XEON.DE',custom:'XEON.DE'}},
+  {name:'iShares € High Yield Corp Bond',isin:'IE00B66F4759',cat:'Obbligazionario HY',ter:0.50,
+   tickers:{scalable:'IHYG.DE',trade_republic:'IHYG.DE',degiro:'IHYG.AS',fineco:'IHYG.MI',iwbank:'IHYG.MI',ibkr:'IHYG.L',custom:'IHYG.L'}},
+  {name:'Vanguard USD Treasury Bond',isin:'IE00BZ163L38',cat:'Obbligazionario USD',ter:0.07,
+   tickers:{scalable:'VDTY.DE',trade_republic:'VDTY.DE',degiro:'VDTY.AS',fineco:'VDTY.MI',iwbank:'VDTY.MI',ibkr:'VDTY.L',custom:'VDTY.L'}},
+  // ── Materie Prime ─────────────────────────────────────────────────────────
+  {name:'iShares Physical Gold ETC',isin:'IE00B4ND3602',cat:'Materie Prime',ter:0.12,
+   tickers:{scalable:'IGLN.DE',trade_republic:'IGLN.DE',degiro:'IGLN.AS',fineco:'SGLN.MI',iwbank:'SGLN.MI',ibkr:'SGLN.L',custom:'SGLN.L'}},
+  {name:'Invesco Physical Gold ETC',isin:'IE00B579F325',cat:'Materie Prime',ter:0.12,
+   tickers:{scalable:'8PSG.DE',trade_republic:'8PSG.DE',degiro:'8PSG.DE',fineco:'8PSG.MI',iwbank:'8PSG.MI',ibkr:'SGLD.L',custom:'SGLD.L'}},
+  {name:'iShares Diversified Commodity Swap',isin:'IE00BDFL4P12',cat:'Materie Prime',ter:0.19,
+   tickers:{scalable:'ICOM.DE',trade_republic:'ICOM.DE',degiro:'ICOM.AS',fineco:'ICOM.MI',iwbank:'ICOM.MI',ibkr:'ICOM.L',custom:'ICOM.L'}},
+  // ── Crypto ETP ─────────────────────────────────────────────────────────────
+  {name:'21Shares Bitcoin Core ETP',isin:'CH1199067674',cat:'Crypto',ter:0.21,
+   tickers:{scalable:'CBTC.DE',trade_republic:'CBTC.DE',degiro:'CBTC.DE',fineco:'CBTC.MI',iwbank:'CBTC.MI',ibkr:'CBTC.SW',custom:'CBTC.SW'}},
+  {name:'21Shares Ethereum ETP',isin:'CH0454664026',cat:'Crypto',ter:0.21,
+   tickers:{scalable:'AETH.DE',trade_republic:'AETH.DE',degiro:'AETH.DE',fineco:'AETH.MI',iwbank:'AETH.MI',ibkr:'AETH.SW',custom:'AETH.SW'}},
+  // ── Immobiliare ────────────────────────────────────────────────────────────
+  {name:'iShares Developed Mkts Property Yield',isin:'IE00B1FZS350',cat:'Real Estate',ter:0.59,
+   tickers:{scalable:'IWDP.DE',trade_republic:'IWDP.DE',degiro:'IWDP.AS',fineco:'IWDP.MI',iwbank:'IWDP.MI',ibkr:'IWDP.L',custom:'IWDP.L'}},
+  {name:'Amundi FTSE EPRA Global REITs',isin:'LU1681041544',cat:'Real Estate',ter:0.24,
+   tickers:{scalable:'EPRA.PA',trade_republic:'EPRA.PA',degiro:'EPRA.PA',fineco:'EPRA.MI',iwbank:'EPRA.MI',ibkr:'EPRA.PA',custom:'EPRA.PA'}},
+  // ── Multi-Asset / Lazy Portfolio ───────────────────────────────────────────
+  {name:'Vanguard LifeStrategy 80% Equity',isin:'IE00BMVB5P51',cat:'Multi-Asset',ter:0.25,
+   tickers:{scalable:'V80A.DE',trade_republic:'V80A.DE',degiro:'V80A.AS',fineco:'V80A.MI',iwbank:'V80A.MI',ibkr:'V80A.L',custom:'V80A.L'}},
+  {name:'Vanguard LifeStrategy 60% Equity',isin:'IE00BMVB5R75',cat:'Multi-Asset',ter:0.25,
+   tickers:{scalable:'V60A.DE',trade_republic:'V60A.DE',degiro:'V60A.AS',fineco:'V60A.MI',iwbank:'V60A.MI',ibkr:'V60A.L',custom:'V60A.L'}},
+  {name:'iShares Core Moderate Allocation',isin:'IE00B4WXJJ64',cat:'Multi-Asset',ter:0.25,
+   tickers:{scalable:'AOM.DE',trade_republic:'AOM.DE',degiro:'AOM.DE',fineco:'AOM.MI',iwbank:'AOM.MI',ibkr:'AOM.DE',custom:'AOM.DE'}},
+  // ── Azionario Pacifico / Asia ──────────────────────────────────────────────
+  {name:'iShares Core MSCI Pacific ex Japan',isin:'IE00B52MJY50',cat:'Azionario Asia',ter:0.20,
+   tickers:{scalable:'IPAC.DE',trade_republic:'IPAC.DE',degiro:'IPAC.AS',fineco:'IPAC.MI',iwbank:'IPAC.MI',ibkr:'IPAC.L',custom:'IPAC.L'}},
+  {name:'iShares MSCI Japan',isin:'IE00B53QG562',cat:'Azionario Asia',ter:0.12,
+   tickers:{scalable:'IJPA.DE',trade_republic:'IJPA.DE',degiro:'IJPA.AS',fineco:'IJPA.MI',iwbank:'IJPA.MI',ibkr:'IJPA.L',custom:'IJPA.L'}},
+  {name:'iShares MSCI China',isin:'IE00BJ38CT90',cat:'Azionario Asia',ter:0.40,
+   tickers:{scalable:'CNYA.DE',trade_republic:'CNYA.DE',degiro:'CNYA.DE',fineco:'CNYA.MI',iwbank:'CNYA.MI',ibkr:'CNYA.DE',custom:'CNYA.DE'}},
+  // ── Small Cap ──────────────────────────────────────────────────────────────
+  {name:'iShares MSCI World Small Cap',isin:'IE00BF4RFH31',cat:'Azionario Small Cap',ter:0.35,
+   tickers:{scalable:'WSML.DE',trade_republic:'WSML.DE',degiro:'WSML.AS',fineco:'WSML.MI',iwbank:'WSML.MI',ibkr:'WSML.L',custom:'WSML.L'}},
+  {name:'SPDR MSCI Europe Small Cap',isin:'IE00BKWQ0M75',cat:'Azionario Small Cap EU',ter:0.30,
+   tickers:{scalable:'ZPRX.DE',trade_republic:'ZPRX.DE',degiro:'ZPRX.DE',fineco:'ZPRX.MI',iwbank:'ZPRX.MI',ibkr:'ZPRX.DE',custom:'ZPRX.DE'}},
+  // ── Dividendi ──────────────────────────────────────────────────────────────
+  {name:'Vanguard FTSE All-World High Div Yield',isin:'IE00B8GKDB10',cat:'Dividendi',ter:0.29,
+   tickers:{scalable:'VHYL.DE',trade_republic:'VHYL.DE',degiro:'VHYL.AS',fineco:'VHYL.MI',iwbank:'VHYL.MI',ibkr:'VHYL.L',custom:'VHYL.L'}},
+  {name:'iShares MSCI World Quality Dividend',isin:'IE00BYYHSM20',cat:'Dividendi',ter:0.38,
+   tickers:{scalable:'QDVW.DE',trade_republic:'QDVW.DE',degiro:'QDVW.DE',fineco:'QDVW.MI',iwbank:'QDVW.MI',ibkr:'QDVW.L',custom:'QDVW.L'}},
+  // ── Factor / Smart Beta ────────────────────────────────────────────────────
+  {name:'iShares Edge MSCI World Momentum',isin:'IE00BP3QZB59',cat:'Factor Investing',ter:0.30,
+   tickers:{scalable:'IS3R.DE',trade_republic:'IS3R.DE',degiro:'IS3R.DE',fineco:'IS3R.MI',iwbank:'IS3R.MI',ibkr:'IWMO.L',custom:'IWMO.L'}},
+  {name:'iShares Edge MSCI World Min Volatility',isin:'IE00B8FHGS14',cat:'Factor Investing',ter:0.30,
+   tickers:{scalable:'MVOL.DE',trade_republic:'MVOL.DE',degiro:'MVOL.AS',fineco:'MVOL.MI',iwbank:'MVOL.MI',ibkr:'MVOL.L',custom:'MVOL.L'}},
+  {name:'iShares Edge MSCI World Value Factor',isin:'IE00BP3QZD73',cat:'Factor Investing',ter:0.30,
+   tickers:{scalable:'IS3S.DE',trade_republic:'IS3S.DE',degiro:'IS3S.DE',fineco:'IS3S.MI',iwbank:'IS3S.MI',ibkr:'IWVL.L',custom:'IWVL.L'}},
+];
+
+// Cerca ETF per query e broker
+function searchETF(query, broker){
+  if(!query||query.length<2)return[];
+  var q=query.toLowerCase();
+  var broker_id=broker||S.broker||'scalable';
+  return ETF_DB.filter(function(e){
+    return e.name.toLowerCase().includes(q)||
+           e.isin.toLowerCase().includes(q)||
+           e.cat.toLowerCase().includes(q)||
+           (e.tickers[broker_id]&&e.tickers[broker_id].toLowerCase().includes(q));
+  }).slice(0,8);
+}
+
+// Ottieni ticker per broker corrente
+function getETFTicker(etf){
+  var broker_id=S.broker||'scalable';
+  return etf.tickers[broker_id]||etf.tickers['custom']||'';
+}
+
+
+// ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
+function etfSearchInput(val){
+  var sugg=document.getElementById('etf-suggestions');
+  if(!sugg)return;
+  if(!val||val.length<2){sugg.style.display='none';return;}
+  var results=searchETF(val,S.broker||'scalable');
+  if(!results.length){sugg.style.display='none';return;}
+  sugg.style.display='block';
+  sugg.innerHTML=results.map(function(e){
+    var ticker=getETFTicker(e);
+    return '<div onclick="etfSelect(\''+e.isin+'\')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);hover:background:var(--surface3)" '+
+      'onmouseenter="this.style.background=\'rgba(232,184,75,0.08)\'" onmouseleave="this.style.background=\'\'">'+
+      '<div style="font-weight:600;font-size:13px;color:var(--text)">'+e.name+'</div>'+
+      '<div style="display:flex;gap:8px;margin-top:3px">'+
+      '<span style="font-size:11px;color:#e8b84b;background:rgba(232,184,75,0.1);padding:1px 6px;border-radius:4px">'+ticker+'</span>'+
+      '<span style="font-size:11px;color:#4a5568">'+e.isin+'</span>'+
+      '<span style="font-size:11px;color:#4a5568">TER '+e.ter+'%</span>'+
+      '<span style="font-size:11px;color:#4a5568">'+e.cat+'</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+function etfSelect(isin){
+  var e=ETF_DB.find(function(x){return x.isin===isin;});
+  if(!e)return;
+  var ticker=getETFTicker(e);
+  // Compila il form
+  var nameEl=document.getElementById('pos-name');
+  var tickerEl=document.getElementById('pos-ticker');
+  var isinEl=document.getElementById('pos-isin');
+  if(nameEl)nameEl.value=e.name;
+  if(tickerEl)tickerEl.value=ticker;
+  if(isinEl)isinEl.value=e.isin;
+  // Chiudi suggerimenti
+  var sugg=document.getElementById('etf-suggestions');
+  if(sugg)sugg.style.display='none';
+  var search=document.getElementById('etf-search');
+  if(search)search.value='';
+  // Focus sul campo quote
+  var qtEl=document.getElementById('pos-qty');
+  if(qtEl)setTimeout(function(){qtEl.focus();},100);
+}
+
+// Chiudi suggerimenti se si clicca fuori
+document.addEventListener('click',function(e){
+  var sugg=document.getElementById('etf-suggestions');
+  var search=document.getElementById('etf-search');
+  if(sugg&&search&&!sugg.contains(e.target)&&e.target!==search){
+    sugg.style.display='none';
+  }
+});
 
 // ═══ AUTO-CORREZIONE TICKER (ticker vecchi → corretti) ════════════════════
 var TICKER_CORRECTIONS = {
