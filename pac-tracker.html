@@ -1145,7 +1145,7 @@ function computeSecAlloc(cp){
 const TABS=['dashboard','portfolio','transactions','performance','report','simulator'];
 function switchTab(n){TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===n);document.querySelectorAll('nav button')[TABS.indexOf(t)].classList.toggle('active',t===n);});renderTab(n);}
 function curTab(){return TABS.find(t=>document.getElementById('tab-'+t).classList.contains('active'))||'dashboard';}
-function renderTab(n){if(n==='dashboard')rdash();if(n==='portfolio'){rport();initPortPills();}if(n==='transactions')rtx();if(n==='performance')rperf();if(n==='report')rrep();if(n==='simulator')initSim();}
+function renderTab(n){if(n==='dashboard')rdash();if(n==='portfolio'){rport();}if(n==='transactions')rtx();if(n==='performance')rperf();if(n==='report')rrep();if(n==='simulator')initSim();}
 
 // ═══ DASHBOARD ════════════════════════════════════════════════════════════════
 function rdash(){
@@ -1258,6 +1258,7 @@ function initPortPills(){
 }
 function setPortPeriod(per){
   _portPeriod=per;
+  initPortPills(); // Ricrea bottoni con stile aggiornato
   var S_BASE='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;';
   var S_ACT='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
   document.querySelectorAll('#port-period-bar button[data-period]').forEach(function(b){
@@ -1265,14 +1266,7 @@ function setPortPeriod(per){
     b.style.cssText=S_BASE+(isAct?S_ACT:'');
   });
   rport();
-  // Ri-applica stile attivo dopo render (rport ricrea i bottoni)
-  setTimeout(function(){
-    var S_BASE='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;';
-    var S_ACT='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
-    document.querySelectorAll('#port-period-bar button[data-period]').forEach(function(b){
-      b.style.cssText=S_BASE+(b.getAttribute('data-period')===_portPeriod?S_ACT:'');
-    });
-  },30);
+
 }
 
 
@@ -2204,15 +2198,25 @@ const ALL_PERIODS = [
 ];
 
 function initPeriodPills(){
-  const wrap=document.getElementById('period-pills');if(!wrap)return;
-  wrap.innerHTML=ALL_PERIODS.map(p=>
-    `<button class="per-pill${p.k===selPeriod?' active':''}" data-key="${p.k}"
-      data-tip="${p.tip}" onclick="selectPeriod('${p.k}')">${p.l}</button>`
-  ).join('');
+  var wrap=document.getElementById('period-pills');if(!wrap)return;
+  var B='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;',A='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
+  wrap.innerHTML=ALL_PERIODS.map(function(p){
+    var isAct=p.k===selPeriod;
+    return '<button style="'+B+(isAct?A:'')+'" data-key="'+p.k+'" data-tip="'+p.tip+'" data-period="'+p.k+'">'+p.l+'</button>';
+  }).join('');
+  wrap.onclick=function(e){
+    var btn=e.target.closest('button[data-period]');if(!btn)return;
+    selectPeriod(btn.getAttribute('data-period'));
+  };
 }
 
 function selectPeriod(key){
   selPeriod=key;
+  var B='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;',A='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
+  document.querySelectorAll('#period-pills button[data-period]').forEach(function(b){
+    var isAct=b.getAttribute('data-period')===key;
+    b.style.cssText=B+(isAct?A:'');
+  });
   document.querySelectorAll('.per-pill').forEach(function(b){var isAct=b.dataset.key===key;b.classList.toggle('active',isAct);b.style.cssText='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;'+(isAct?'background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;':'');});
   renderPeriodChart(key);
 }
