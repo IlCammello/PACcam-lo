@@ -1286,9 +1286,10 @@ function setPortPeriod(per){
 function getSparkData(ticker){
   var h=PC[ticker]; if(!h||!h.timestamps||h.timestamps.length<2) return null;
   var ts=h.timestamps, cs=h.closes;
-  var days=_portPeriod==='max'?99999:_portPeriod==='ytd'?365:
+  var days=_portPeriod==='max'?99999:_portPeriod==='ytd'?
+    Math.round((Date.now()/1000-new Date(new Date().getFullYear(),0,1).getTime()/1000)/86400):
     _portPeriod==='1y'?365:_portPeriod==='3m'?90:
-    _portPeriod==='1m'?30:_portPeriod==='1w'?7:99999;
+    _portPeriod==='1m'?30:_portPeriod==='1w'?7:_portPeriod==='1d'?2:99999;
   var cutoff=ts[ts.length-1]-days*86400;
   var from=ts.findIndex(function(t){return t>=cutoff;});
   if(from<0)from=0;
@@ -1350,6 +1351,19 @@ function rport(){
           <div style="font-weight:800;font-size:15px;color:var(--accent)">${p.currentVal>0?fEur(p.currentVal):'—'}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${p.currentPrice>0?fEur(p.currentPrice):''}</div>
           ${PC[p.ticker]&&PC[p.ticker].timestamps?'<canvas id="spark-'+p.id+'" width="80" height="28" style="display:block;margin-top:4px;opacity:0.3"></canvas>':''} 
+          ${(function(){
+            // Mostra gain% in base al periodo selezionato
+            var pr=null;
+            if(_portPeriod==='cur'||_portPeriod==='max'){
+              // Attuale/Max: gain% dal prezzo medio di carico
+              return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
+            } else {
+              // Periodo: rendimento price-return del periodo
+              try{pr=getPortPeriodReturn(p.ticker);}catch(e){}
+              if(pr===null||isNaN(pr))return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
+              return '<div style="font-size:12px;font-weight:700;color:'+(pr>=0?'var(--green)':'var(--red)')+'">'+PORT_PERIODS[_portPeriod].label+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';
+            }
+          })()}
           <div style="font-size:12px;font-weight:700;color:${gainColor};margin-top:2px">${p.totalCost>0?fPct(p.gainPct):'—'}</div>
           ${(function(){try{if(_portPeriod==='cur'||!p.ticker)return '';var pr=getPortPeriodReturn(p.ticker);if(pr===null||isNaN(pr))return '';var lbl=PORT_PERIODS[_portPeriod]?PORT_PERIODS[_portPeriod].label:_portPeriod;return '<div style="font-size:10px;color:'+(pr>=0?'var(--green)':'var(--red)')+';margin-top:1px">'+lbl+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';}catch(e){return '';}})()}
         </div>
