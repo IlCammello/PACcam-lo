@@ -4336,8 +4336,21 @@ function toggleAllPos(){
 
 // ─── Ticker aliases: ticker originale → ticker Yahoo Finance che funziona ────
 var TICKER_ALIASES={
-  'CH1199067674.SG':'CBTC.SW',  // 21Shares Bitcoin Core ETP → SIX Swiss (Yahoo lo conosce)
-  'LYQ6.DE':'LYQ6.DE',          // Amundi Euro Govt Bond 10-15Y (invariato, ma esplicito)
+  // Alias necessari per Yahoo Finance
+  'CH1199067674.SG':'CBTC.SW',  // Bitcoin → SIX Swiss
+  'CH1199067674':'CBTC.SW',     // Bitcoin senza .SG
+  'CBTC.DE':'CBTC.SW',          // Bitcoin XETRA → SIX Swiss
+  'LYQ6.DE':'LYQ6.DE',
+  // Ticker senza suffisso exchange → versione con suffisso
+  'SWDA':'SWDA.L',
+  'SEMA':'SEMA.L',
+  'MEUD':'MEUD.PA',
+  'XAIX':'XAIX.DE',
+  'SGLN':'SGLN.L',
+  'XEON':'XEON.DE',
+  'QNTM':'QNTM.L',
+  'LYQ6':'LYQ6.DE',
+  'EM1015':'LYQ6.DE',
 };
 function yTicker(t){return TICKER_ALIASES[t]||t;}
 
