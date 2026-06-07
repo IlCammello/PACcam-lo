@@ -623,8 +623,8 @@ function updateBottomNav(tab){
       </div>
     </div>
     <div id="price-upd-status" style="font-size:11px;color:var(--text-muted);margin-bottom:12px;min-height:16px"></div>
-    <div id="port-period-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 0 12px 0">
-      <span style="font-size:11px;color:#7a90a8;margin-right:4px">Rendimento:</span>
+    <div id="port-period-bar" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:4px 0 12px 0;scrollbar-width:none">
+      
     </div>
     <div class="table-wrapper"><table>
       <thead><tr><th style="padding:8px">Le Mie Posizioni</th></tr></thead>
@@ -698,7 +698,10 @@ function updateBottomNav(tab){
       </div>
     </div>
     <div class="perf-block" id="block-per" style="display:none">
-      <div class="perf-block-title">Rendimenti per Periodo</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="perf-block-title" style="margin-bottom:0">Rendimenti per Periodo</div>
+      </div>
+      <div id="per-period-bar" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:none"></div>
       <div id="per-table"></div>
       <p style="font-size:11px;color:var(--text-muted);margin-top:8px">"Dal mio acq." = rendimento sul prezzo medio di carico · Aggregati ponderati per valore attuale</p>
     </div>
@@ -1269,7 +1272,7 @@ function initPortPills(){
     {k:'1d',l:'1G'},{k:'1w',l:'1S'},{k:'1m',l:'1M'},
     {k:'3m',l:'3M'},{k:'ytd',l:'YTD'},{k:'1y',l:'1A'},{k:'max',l:'Max'}
   ];
-  bar.innerHTML='<span style="font-size:11px;color:#7a90a8;margin-right:4px">Rendimento:</span>'+
+  bar.innerHTML=''+
     pills.map(function(p){
       var isAct=p.k===_portPeriod;
       return '<button style="display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;'+(isAct?'background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;':'')+'" onclick="setPortPeriod(\''+p.k+'\')" data-k="'+p.k+'">'+p.l+'</button>';
@@ -3015,6 +3018,76 @@ function rHeatmap(cp,tv){
   el.innerHTML=h;
 }
 
+
+// ═══ PERIODO SELEZIONATO IN RENDIMENTI PER PERIODO ═══════════════════════════
+var _perTablePeriod = '1y'; // default 1A
+
+function initPerTablePills(){
+  var bar=document.getElementById('per-period-bar');if(!bar)return;
+  var pills=[
+    {k:'1w',l:'1S'},{k:'1m',l:'1M'},{k:'3m',l:'3M'},
+    {k:'ytd',l:'YTD'},{k:'1y',l:'1A'},{k:'3y',l:'3A'},{k:'5y',l:'5A'},{k:'max',l:'Max'}
+  ];
+  var B='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;';
+  var A='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
+  bar.innerHTML=pills.map(function(p){
+    var isAct=p.k===_perTablePeriod;
+    return '<button style="'+B+(isAct?A:'')+'" data-per="'+p.k+'">'+p.l+'</button>';
+  }).join('');
+  bar.onclick=function(e){
+    var btn=e.target.closest('button[data-per]');if(!btn)return;
+    _perTablePeriod=btn.getAttribute('data-per');
+    bar.querySelectorAll('button[data-per]').forEach(function(b){
+      b.style.cssText=B+(b.getAttribute('data-per')===_perTablePeriod?A:'');
+    });
+    renderPerTableSimple();
+  };
+}
+
+function renderPerTableSimple(){
+  var el=document.getElementById('per-table');if(!el)return;
+  var cp=computeAll().filter(function(p){return p.currentVal>0;});
+  var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0;});
+  if(!pos.length){
+    el.innerHTML='<p style="color:#7a90a8;font-size:13px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
+    return;
+  }
+  var per={k:_perTablePeriod,d:_perTablePeriod==='max'?99999:_perTablePeriod==='ytd'?null:
+    _perTablePeriod==='5y'?1825:_perTablePeriod==='3y'?1095:_perTablePeriod==='1y'?365:
+    _perTablePeriod==='3m'?90:_perTablePeriod==='1m'?30:7};
+
+  function getVal(ticker){
+    if(_perTablePeriod==='ytd') return calcYTD(PC[ticker]);
+    if(_perTablePeriod==='max') return calcR(PC[ticker],Math.round((PC[ticker].timestamps[PC[ticker].timestamps.length-1]-PC[ticker].timestamps[0])/86400));
+    return calcR(PC[ticker],per.d);
+  }
+
+  var rows=pos.map(function(p){
+    var v=getVal(p.ticker);
+    var col=v===null?'#4a5568':v>=0?'#4ade9e':'#f87171';
+    var txt=v===null?'N/D':(v>=0?'+':'')+v.toFixed(2)+'%';
+    var shortName=(p.name||p.ticker).replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim();
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.05)">'+
+      '<div><div style="font-size:13px;color:#e8e9ea;font-weight:500">'+shortName+'</div>'+
+      '<div style="font-size:10px;color:#4a5568;margin-top:1px">'+p.ticker+'</div></div>'+
+      '<div style="font-size:14px;font-weight:700;color:'+col+'">'+txt+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Portafoglio aggregato
+  var wsum=0,wval=0;
+  pos.forEach(function(p){var v=getVal(p.ticker);if(v!==null&&p.currentVal>0){wsum+=v*p.currentVal;wval+=p.currentVal;}});
+  var portVal=wval>0?wsum/wval:null;
+  var portCol=portVal===null?'#4a5568':portVal>=0?'#4ade9e':'#f87171';
+  var portTxt=portVal===null?'N/D':(portVal>=0?'+':'')+portVal.toFixed(2)+'%';
+  rows+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-top:2px solid rgba(232,184,75,0.2);margin-top:4px">'+
+    '<div style="font-size:13px;color:#e8b84b;font-weight:700">📊 Portafoglio</div>'+
+    '<div style="font-size:14px;font-weight:700;color:'+portCol+'">'+portTxt+'</div>'+
+  '</div>';
+
+  el.innerHTML='<div>'+rows+'</div>';
+}
+
 function rPeriodTable(cp,tv){
   var el=document.getElementById('per-table');if(!el)return;
   var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0;});
@@ -3122,7 +3195,7 @@ function rperf(){
   var hasPCNow=Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;});
   console.log('[rperf] hasPCNow='+hasPCNow+' PC keys='+Object.keys(PC).length);
   if(hasPCNow){
-    rHeatmap(cp,tv);rPeriodTable(cp,tv);
+    rHeatmap(cp,tv);initPerTablePills();renderPerTableSimple();
     initPeriodPills();renderPeriodChart(selPeriod);
   } else {
     var hmEl=document.getElementById('hm-inner');
@@ -4391,6 +4464,36 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 // Forza ordine dashboard con perf prima
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
+
+// ─── Chart.js defaults globali ───────────────────────────────────────────────
+if(typeof Chart !== 'undefined'){
+  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15,21,32,0.92)';
+  Chart.defaults.plugins.tooltip.borderColor = '#263040';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.padding = 8;
+  Chart.defaults.plugins.tooltip.titleFont = {size:11, weight:'600'};
+  Chart.defaults.plugins.tooltip.bodyFont = {size:11};
+  Chart.defaults.plugins.tooltip.titleColor = '#e8b84b';
+  Chart.defaults.plugins.tooltip.bodyColor = '#e8e9ea';
+  Chart.defaults.plugins.tooltip.cornerRadius = 6;
+  Chart.defaults.plugins.tooltip.displayColors = true;
+  Chart.defaults.plugins.tooltip.boxWidth = 8;
+  Chart.defaults.plugins.tooltip.boxHeight = 8;
+}
+
+
+// ─── Nascondi tooltip Chart.js su touchend ───────────────────────────────────
+document.addEventListener('touchend', function(){
+  setTimeout(function(){
+    Object.values(Chart.instances||{}).forEach(function(chart){
+      if(chart&&chart.tooltip){
+        chart.tooltip.setActiveElements([],{x:0,y:0});
+        chart.update('none');
+      }
+    });
+  }, 1500); // scompare dopo 1.5 secondi dal rilascio
+}, {passive:true});
+
 loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
 // Auto-carica dati storici in background se non presenti
 setTimeout(function(){
