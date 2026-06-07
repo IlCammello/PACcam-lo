@@ -1290,7 +1290,7 @@ function getSparkData(ticker){
     Math.round((Date.now()/1000-new Date(new Date().getFullYear(),0,1).getTime()/1000)/86400):
     _portPeriod==='1y'?365:_portPeriod==='3m'?90:
     _portPeriod==='1m'?30:_portPeriod==='1w'?7:_portPeriod==='1d'?2:99999;
-  var cutoff=ts[ts.length-1]-days*86400;
+  var cutoff=days>=99999?ts[0]:ts[ts.length-1]-days*86400;
   var from=ts.findIndex(function(t){return t>=cutoff;});
   if(from<0)from=0;
   var data=cs.slice(from).filter(function(v){return v!=null;});
@@ -1664,9 +1664,13 @@ var ETF_DB = [
 
 // ═══ ISIN → TICKER PER BROKER ════════════════════════════════════════════════
 function getTickerForBroker(isin, fallbackTicker){
-  if(!isin) return fallbackTicker;
   var broker=S.broker||'scalable';
-  var etf=ETF_DB.find(function(e){return e.isin===isin;});
+  // Risolvi ISIN: usa quello passato o cercalo in ISIN_MAP dal ticker
+  var resolvedISIN=isin||
+    (ISIN_MAP&&ISIN_MAP[fallbackTicker])||
+    (ISIN_MAP&&ISIN_MAP[yTicker(fallbackTicker)])||'';
+  if(!resolvedISIN) return fallbackTicker;
+  var etf=ETF_DB.find(function(e){return e.isin===resolvedISIN;});
   if(etf&&etf.tickers&&etf.tickers[broker]){
     return etf.tickers[broker];
   }
