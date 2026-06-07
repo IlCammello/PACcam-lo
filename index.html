@@ -388,18 +388,22 @@ details[open] summary{margin-bottom:10px}
 #drw-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
   backdrop-filter:blur(3px);z-index:150}
 #drw-ov.open{display:block}
-#drw{position:fixed;right:0;top:0;bottom:0;width:440px;max-width:100vw;
+#drw{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:92vw;
   background:var(--surface);border-left:1px solid var(--border);
   overflow-y:auto;z-index:151;
   transform:translateX(105%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
 #drw-ov.open #drw{transform:translateX(0)}
+@media(max-width:600px){
+  #drw{width:100vw;max-width:100vw}
+}
+
 #drw-hd{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);
   padding:16px 20px;display:flex;align-items:start;justify-content:space-between;gap:12px;z-index:1}
 .drw-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--text);margin-bottom:5px;line-height:1.3}
 .drw-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;
   padding:2px 7px;border-radius:6px;flex-shrink:0;line-height:1;transition:all .15s}
 .drw-close:hover{background:var(--surface2);color:var(--text)}
-#drw-bd{padding:20px}
+#drw-bd{padding:16px 20px}
 .drw-sec{margin-bottom:22px}
 .drw-sec-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
   letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
@@ -801,6 +805,14 @@ function updateBottomNav(tab){
 
 <div class="modal-overlay" id="modal-position" onclick="overlayClick(event,'position')"><div class="modal">
   <div class="modal-title" id="pos-modal-title">Aggiungi Strumento</div>
+  <!-- Ricerca ETF dal database -->
+  <div class="form-group full" style="margin-bottom:4px">
+    <label>🔍 Cerca ETF (opzionale)</label>
+    <input id="etf-search" type="text" placeholder="es. MSCI World, S&P 500, Gold..." autocomplete="off"
+      oninput="etfSearchInput(this.value)"
+      style="width:100%;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px">
+    <div id="etf-suggestions" style="display:none;position:absolute;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-top:4px;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);width:calc(100% - 48px)"></div>
+  </div>
   <div class="form-grid">
     <div class="form-group full"><label>Nome</label><input id="pos-name" type="text" placeholder="es. iShares Core MSCI World ETF"></div>
     <div class="form-group"><label>Ticker Yahoo Finance</label><input id="pos-ticker" type="text" placeholder="es. SWDA.L"></div>
@@ -1399,7 +1411,7 @@ async function loadPerfData(){
     status.innerHTML=`<span class="spinner"></span>${loaded+1}/${positions.length}: ${dt(pos.ticker)}…`;
     try{
       console.log('[PerfLoad] Carico storico per '+pos.ticker+'...');
-      const data=await fetchYChartWithFallback(pos.ticker,'2y');
+      const data=await fetchYChartWithFallback(pos.ticker,'2y',pos.isin);
       console.log('[PerfLoad] OK '+pos.ticker+': '+data.timestamps.length+' punti');
       PC[pos.ticker]=data;
       // Update current price (GBp fix applied inside fetchYChart)
@@ -1416,6 +1428,308 @@ async function loadPerfData(){
 
 
 // ═══ AUTO-POPOLA ISIN sulle posizioni esistenti ═══════════════════════════════
+
+
+// ═══ ONBOARDING ═════════════════════════════════════════════════════════════
+var _obStep = 0;
+var OB_STEPS = [
+  {
+    icon: '🐪',
+    title: 'Benvenuto in PACcamélo',
+    body: 'Il tracker per il tuo piano di accumulo. Tieni traccia di tutti i tuoi ETF, monitora i rendimenti e pianifica il futuro — tutto in un posto.',
+    next: 'Inizia →'
+  },
+  {
+    icon: '🏦',
+    title: 'Scegli il tuo broker',
+    body: '<p style="margin-bottom:16px;color:#7a90a8;font-size:14px">Da quale piattaforma acquisti i tuoi ETF?</p><div id="ob-broker-list" style="display:flex;flex-direction:column;gap:8px;text-align:left"></div>',
+    next: 'Avanti →',
+    setup: 'obSetupBroker'
+  },
+  {
+    icon: '➕',
+    title: 'Aggiungi la prima posizione',
+    body: 'Vai in <strong style="color:#e8b84b">Portafoglio</strong> → clicca <strong style="color:#e8b84b">+ Aggiungi</strong>.<br><br>Inserisci il nome, il ticker e i tuoi acquisti passati. Puoi aggiungere più acquisti per lo stesso ETF.',
+    next: 'Avanti →'
+  },
+  {
+    icon: '📈',
+    title: 'Carica i dati storici',
+    body: 'Per vedere grafici e rendimenti storici, vai in <strong style="color:#e8b84b">Performance</strong> e clicca <strong style="color:#e8b84b">↺ Forza ricarica</strong>.<br><br>Serve solo al primo avvio — poi i dati vengono salvati automaticamente.',
+    next: '🚀 Inizia a usare l\'app'
+  }
+];
+
+function obRender(){
+  var step=OB_STEPS[_obStep];
+  document.getElementById('ob-content').innerHTML=
+    '<div style="font-size:64px;margin-bottom:16px">'+step.icon+'</div>'+
+    '<h2 style="font-size:22px;font-weight:700;color:#e8e9ea;margin-bottom:12px">'+step.title+'</h2>'+
+    '<p style="font-size:15px;color:#7a90a8;line-height:1.6">'+step.body+'</p>';
+  document.getElementById('ob-next').textContent=step.next||'Avanti →';
+  document.getElementById('ob-back').style.display=_obStep>0?'block':'none';
+  // Aggiorna dots
+  document.querySelectorAll('.ob-dot').forEach(function(d,i){
+    d.classList.toggle('ob-dot-active',i===_obStep);
+  });
+  if(step.setup && typeof window[step.setup]==='function') window[step.setup]();
+}
+
+function obSetupBroker(){
+  setTimeout(function(){
+    var el=document.getElementById('ob-broker-list');if(!el)return;
+    var brokers=typeof BROKERS!=='undefined'?BROKERS:[];
+    el.innerHTML=brokers.map(function(b){
+      var isAct=(S.broker||'scalable')===b.id;
+      return '<button onclick="obSelectBroker(\''+b.id+'\')" data-bid="'+b.id+'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:'+(isAct?'rgba(232,184,75,0.12)':'#161e2e')+';border:'+(isAct?'1px solid #e8b84b':'1px solid #263040')+';border-radius:8px;cursor:pointer;color:'+(isAct?'#e8b84b':'#7a90a8')+';font-size:13px;width:100%">'+
+        '<span style="font-size:18px">'+b.flag+'</span>'+
+        '<div style="text-align:left"><div style="font-weight:600">'+b.name+'</div><div style="font-size:11px;opacity:0.7">'+b.note+'</div></div>'+
+        (isAct?'<span style="margin-left:auto">✓</span>':'')+
+        '</button>';
+    }).join('');
+  },50);
+}
+
+function obSelectBroker(id){
+  S.broker=id; saveS();
+  obSetupBroker();
+}
+
+function obNav(dir){
+  _obStep=Math.max(0,Math.min(OB_STEPS.length-1,_obStep+dir));
+  if(_obStep===OB_STEPS.length-1&&dir===1){
+    // Ultimo step - avanti chiude
+    document.getElementById('ob-next').onclick=function(){obFinish();};
+  } else {
+    document.getElementById('ob-next').onclick=function(){obNav(1);};
+  }
+  obRender();
+}
+
+function obFinish(){
+  document.getElementById('onboarding-overlay').style.display='none';
+  localStorage.setItem('pac_onboarding_done','1');
+}
+
+function obSkip(){ obFinish(); }
+
+function startOnboarding(){
+  _obStep=0;
+  document.getElementById('ob-next').onclick=function(){obNav(1);};
+  document.getElementById('onboarding-overlay').style.cssText='display:flex;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px';
+  obRender();
+}
+
+function checkOnboarding(){
+  var ov=document.getElementById('onboarding-overlay');
+  if(ov)ov.style.display='none'; // sempre nascosto di default
+  if(!localStorage.getItem('pac_onboarding_done')){
+    setTimeout(startOnboarding, 800);
+  }
+}
+
+
+// ═══ ETF DATABASE (50 ETF popolari per investitori italiani) ═════════════════
+var ETF_DB = [
+  // ── Azionario Globale ──────────────────────────────────────────────────────
+  {name:'iShares Core MSCI World',isin:'IE00B4L5Y983',cat:'Azionario Globale',ter:0.20,
+   tickers:{scalable:'EUNL.DE',trade_republic:'EUNL.DE',degiro:'IWDA.AS',fineco:'SWDA.MI',iwbank:'SWDA.MI',ibkr:'SWDA.L',custom:'SWDA.L'}},
+  {name:'Vanguard FTSE All-World',isin:'IE00B3RBWM25',cat:'Azionario Globale',ter:0.22,
+   tickers:{scalable:'VWRL.DE',trade_republic:'VWRL.DE',degiro:'VWRL.AS',fineco:'VWRL.MI',iwbank:'VWRL.MI',ibkr:'VWRL.L',custom:'VWRL.L'}},
+  {name:'SPDR MSCI ACWI IMI',isin:'IE00B3YLTY66',cat:'Azionario Globale',ter:0.17,
+   tickers:{scalable:'SPYI.DE',trade_republic:'SPYI.DE',degiro:'SPYI.AS',fineco:'SPYI.MI',iwbank:'SPYI.MI',ibkr:'IMID.L',custom:'IMID.L'}},
+  {name:'Amundi MSCI World',isin:'LU1437016972',cat:'Azionario Globale',ter:0.12,
+   tickers:{scalable:'LCUW.DE',trade_republic:'LCUW.DE',degiro:'LCUW.AS',fineco:'LCUW.MI',iwbank:'LCUW.MI',ibkr:'CW8.PA',custom:'CW8.PA'}},
+  {name:'iShares MSCI World SRI',isin:'IE00BYX2JD69',cat:'Azionario Globale ESG',ter:0.20,
+   tickers:{scalable:'SUSW.DE',trade_republic:'SUSW.DE',degiro:'SUSW.AS',fineco:'SUSW.MI',iwbank:'SUSW.MI',ibkr:'SUSW.L',custom:'SUSW.L'}},
+  // ── Azionario USA ──────────────────────────────────────────────────────────
+  {name:'iShares Core S&P 500',isin:'IE00B5BMR087',cat:'Azionario USA',ter:0.07,
+   tickers:{scalable:'SXR8.DE',trade_republic:'SXR8.DE',degiro:'CSPX.AS',fineco:'CSPX.MI',iwbank:'CSPX.MI',ibkr:'CSPX.L',custom:'CSPX.L'}},
+  {name:'Vanguard S&P 500',isin:'IE00B3XXRP09',cat:'Azionario USA',ter:0.07,
+   tickers:{scalable:'VUSA.DE',trade_republic:'VUSA.DE',degiro:'VUSA.AS',fineco:'VUSA.MI',iwbank:'VUSA.MI',ibkr:'VUSA.L',custom:'VUSA.L'}},
+  {name:'Amundi S&P 500',isin:'LU1681048804',cat:'Azionario USA',ter:0.15,
+   tickers:{scalable:'500.PA',trade_republic:'500.PA',degiro:'500.PA',fineco:'500.PA',iwbank:'500.PA',ibkr:'500.PA',custom:'500.PA'}},
+  {name:'iShares Nasdaq 100',isin:'IE00B53SZB19',cat:'Azionario USA Tech',ter:0.33,
+   tickers:{scalable:'CNDX.DE',trade_republic:'CNDX.DE',degiro:'CNDX.AS',fineco:'CNDX.MI',iwbank:'CNDX.MI',ibkr:'CNDX.L',custom:'CNDX.L'}},
+  {name:'Xtrackers MSCI USA',isin:'IE00BJK9H753',cat:'Azionario USA',ter:0.07,
+   tickers:{scalable:'XMUS.DE',trade_republic:'XMUS.DE',degiro:'XMUS.DE',fineco:'XMUS.MI',iwbank:'XMUS.MI',ibkr:'XMUS.DE',custom:'XMUS.DE'}},
+  // ── Azionario Europa ──────────────────────────────────────────────────────
+  {name:'Amundi Core Stoxx Europe 600',isin:'LU1681043599',cat:'Azionario Europa',ter:0.07,
+   tickers:{scalable:'MEUD.PA',trade_republic:'MEUD.PA',degiro:'MEUD.PA',fineco:'MEUD.MI',iwbank:'MEUD.MI',ibkr:'MEUD.PA',custom:'MEUD.PA'}},
+  {name:'iShares Core EURO STOXX 50',isin:'IE0008471009',cat:'Azionario Europa',ter:0.10,
+   tickers:{scalable:'EXW1.DE',trade_republic:'EXW1.DE',degiro:'EXW1.DE',fineco:'EXW1.MI',iwbank:'EXW1.MI',ibkr:'EXW1.DE',custom:'EXW1.DE'}},
+  {name:'Vanguard FTSE Developed Europe',isin:'IE00B945VV12',cat:'Azionario Europa',ter:0.10,
+   tickers:{scalable:'VEUR.DE',trade_republic:'VEUR.DE',degiro:'VEUR.AS',fineco:'VEUR.MI',iwbank:'VEUR.MI',ibkr:'VEUR.L',custom:'VEUR.L'}},
+  {name:'iShares MSCI Europe SRI',isin:'IE00B52VJ196',cat:'Azionario Europa ESG',ter:0.20,
+   tickers:{scalable:'IESE.DE',trade_republic:'IESE.DE',degiro:'IESE.AS',fineco:'IESE.MI',iwbank:'IESE.MI',ibkr:'IESE.L',custom:'IESE.L'}},
+  // ── Azionario Mercati Emergenti ────────────────────────────────────────────
+  {name:'iShares MSCI Emerging Markets (Dist)',isin:'IE00B4L5Y696',cat:'Mercati Emergenti',ter:0.18,
+   tickers:{scalable:'SEMA.DE',trade_republic:'SEMA.DE',degiro:'SEMA.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
+  {name:'iShares MSCI Emerging Markets',isin:'IE00B4L5YC18',cat:'Mercati Emergenti',ter:0.18,
+   tickers:{scalable:'IS3N.DE',trade_republic:'IS3N.DE',degiro:'EMIM.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
+  {name:'Vanguard FTSE Emerging Markets',isin:'IE00B3VVMM84',cat:'Mercati Emergenti',ter:0.22,
+   tickers:{scalable:'VFEM.DE',trade_republic:'VFEM.DE',degiro:'VFEM.AS',fineco:'VFEM.MI',iwbank:'VFEM.MI',ibkr:'VFEM.L',custom:'VFEM.L'}},
+  {name:'Amundi MSCI Emerging Markets',isin:'LU1681045370',cat:'Mercati Emergenti',ter:0.20,
+   tickers:{scalable:'AEEM.PA',trade_republic:'AEEM.PA',degiro:'AEEM.PA',fineco:'AEEM.MI',iwbank:'AEEM.MI',ibkr:'AEEM.PA',custom:'AEEM.PA'}},
+  // ── Azionario Tematico ─────────────────────────────────────────────────────
+  {name:'Xtrackers AI & Big Data',isin:'IE00BGV5VN51',cat:'Tematico Tech',ter:0.35,
+   tickers:{scalable:'XAIX.DE',trade_republic:'XAIX.DE',degiro:'XAIX.DE',fineco:'XAIX.MI',iwbank:'XAIX.MI',ibkr:'XAIX.DE',custom:'XAIX.DE'}},
+  {name:'iShares Global Clean Energy',isin:'IE00B1XNHC34',cat:'Tematico Clean Energy',ter:0.65,
+   tickers:{scalable:'INRG.DE',trade_republic:'INRG.DE',degiro:'INRG.AS',fineco:'INRG.MI',iwbank:'INRG.MI',ibkr:'INRG.L',custom:'INRG.L'}},
+  {name:'iShares Digitalisation',isin:'IE00BYZK4552',cat:'Tematico Tech',ter:0.40,
+   tickers:{scalable:'DGTL.DE',trade_republic:'DGTL.DE',degiro:'DGTL.AS',fineco:'DGTL.MI',iwbank:'DGTL.MI',ibkr:'DGTL.L',custom:'DGTL.L'}},
+  {name:'VanEck Quantum Computing',isin:'IE0005E5A897',cat:'Tematico Tech',ter:0.49,
+   tickers:{scalable:'QNTM.DE',trade_republic:'QNTM.DE',degiro:'QNTM.DE',fineco:'QNTM.MI',iwbank:'QNTM.MI',ibkr:'QNTM.L',custom:'QNTM.L'}},
+  {name:'iShares Automation & Robotics',isin:'IE00BYZK4669',cat:'Tematico Tech',ter:0.40,
+   tickers:{scalable:'RBOT.DE',trade_republic:'RBOT.DE',degiro:'RBOT.AS',fineco:'RBOT.MI',iwbank:'RBOT.MI',ibkr:'RBOT.L',custom:'RBOT.L'}},
+  {name:'L&G Cyber Security',isin:'IE00BYPLS672',cat:'Tematico Tech',ter:0.75,
+   tickers:{scalable:'ISPY.DE',trade_republic:'ISPY.DE',degiro:'ISPY.AS',fineco:'ISPY.MI',iwbank:'ISPY.MI',ibkr:'ISPY.L',custom:'ISPY.L'}},
+  // ── Obbligazionario ────────────────────────────────────────────────────────
+  {name:'iShares Core € Govt Bond',isin:'IE00B4WXJJ64',cat:'Obbligazionario EUR',ter:0.07,
+   tickers:{scalable:'EUN4.DE',trade_republic:'EUN4.DE',degiro:'EUN4.DE',fineco:'EUN4.MI',iwbank:'EUN4.MI',ibkr:'EUN4.DE',custom:'EUN4.DE'}},
+  {name:'Amundi Euro Govt Bond 10-15Y',isin:'LU2421926404',cat:'Obbligazionario EUR',ter:0.14,
+   tickers:{scalable:'LYQ6.DE',trade_republic:'LYQ6.DE',degiro:'LYQ6.DE',fineco:'LYQ6.MI',iwbank:'LYQ6.MI',ibkr:'LYQ6.DE',custom:'LYQ6.DE'}},
+  {name:'iShares € Corp Bond',isin:'IE0032523478',cat:'Obbligazionario Corp EUR',ter:0.20,
+   tickers:{scalable:'IEAC.DE',trade_republic:'IEAC.DE',degiro:'IEAC.AS',fineco:'IEAC.MI',iwbank:'IEAC.MI',ibkr:'IEAC.L',custom:'IEAC.L'}},
+  {name:'Xtrackers EUR Overnight Rate Swap',isin:'LU0290358497',cat:'Monetario EUR',ter:0.10,
+   tickers:{scalable:'XEON.DE',trade_republic:'XEON.DE',degiro:'XEON.DE',fineco:'XEON.MI',iwbank:'XEON.MI',ibkr:'XEON.DE',custom:'XEON.DE'}},
+  {name:'iShares € High Yield Corp Bond',isin:'IE00B66F4759',cat:'Obbligazionario HY',ter:0.50,
+   tickers:{scalable:'IHYG.DE',trade_republic:'IHYG.DE',degiro:'IHYG.AS',fineco:'IHYG.MI',iwbank:'IHYG.MI',ibkr:'IHYG.L',custom:'IHYG.L'}},
+  {name:'Vanguard USD Treasury Bond',isin:'IE00BZ163L38',cat:'Obbligazionario USD',ter:0.07,
+   tickers:{scalable:'VDTY.DE',trade_republic:'VDTY.DE',degiro:'VDTY.AS',fineco:'VDTY.MI',iwbank:'VDTY.MI',ibkr:'VDTY.L',custom:'VDTY.L'}},
+  // ── Materie Prime ─────────────────────────────────────────────────────────
+  {name:'iShares Physical Gold ETC',isin:'IE00B4ND3602',cat:'Materie Prime',ter:0.12,
+   tickers:{scalable:'IGLN.DE',trade_republic:'IGLN.DE',degiro:'IGLN.AS',fineco:'SGLN.MI',iwbank:'SGLN.MI',ibkr:'SGLN.L',custom:'SGLN.L'}},
+  {name:'Invesco Physical Gold ETC',isin:'IE00B579F325',cat:'Materie Prime',ter:0.12,
+   tickers:{scalable:'8PSG.DE',trade_republic:'8PSG.DE',degiro:'8PSG.DE',fineco:'8PSG.MI',iwbank:'8PSG.MI',ibkr:'SGLD.L',custom:'SGLD.L'}},
+  {name:'iShares Diversified Commodity Swap',isin:'IE00BDFL4P12',cat:'Materie Prime',ter:0.19,
+   tickers:{scalable:'ICOM.DE',trade_republic:'ICOM.DE',degiro:'ICOM.AS',fineco:'ICOM.MI',iwbank:'ICOM.MI',ibkr:'ICOM.L',custom:'ICOM.L'}},
+  // ── Crypto ETP ─────────────────────────────────────────────────────────────
+  {name:'21Shares Bitcoin Core ETP',isin:'CH1199067674',cat:'Crypto',ter:0.21,
+   tickers:{scalable:'CBTC.DE',trade_republic:'CBTC.DE',degiro:'CBTC.DE',fineco:'CBTC.MI',iwbank:'CBTC.MI',ibkr:'CBTC.SW',custom:'CBTC.SW'}},
+  {name:'21Shares Ethereum ETP',isin:'CH0454664026',cat:'Crypto',ter:0.21,
+   tickers:{scalable:'AETH.DE',trade_republic:'AETH.DE',degiro:'AETH.DE',fineco:'AETH.MI',iwbank:'AETH.MI',ibkr:'AETH.SW',custom:'AETH.SW'}},
+  // ── Immobiliare ────────────────────────────────────────────────────────────
+  {name:'iShares Developed Mkts Property Yield',isin:'IE00B1FZS350',cat:'Real Estate',ter:0.59,
+   tickers:{scalable:'IWDP.DE',trade_republic:'IWDP.DE',degiro:'IWDP.AS',fineco:'IWDP.MI',iwbank:'IWDP.MI',ibkr:'IWDP.L',custom:'IWDP.L'}},
+  {name:'Amundi FTSE EPRA Global REITs',isin:'LU1681041544',cat:'Real Estate',ter:0.24,
+   tickers:{scalable:'EPRA.PA',trade_republic:'EPRA.PA',degiro:'EPRA.PA',fineco:'EPRA.MI',iwbank:'EPRA.MI',ibkr:'EPRA.PA',custom:'EPRA.PA'}},
+  // ── Multi-Asset / Lazy Portfolio ───────────────────────────────────────────
+  {name:'Vanguard LifeStrategy 80% Equity',isin:'IE00BMVB5P51',cat:'Multi-Asset',ter:0.25,
+   tickers:{scalable:'V80A.DE',trade_republic:'V80A.DE',degiro:'V80A.AS',fineco:'V80A.MI',iwbank:'V80A.MI',ibkr:'V80A.L',custom:'V80A.L'}},
+  {name:'Vanguard LifeStrategy 60% Equity',isin:'IE00BMVB5R75',cat:'Multi-Asset',ter:0.25,
+   tickers:{scalable:'V60A.DE',trade_republic:'V60A.DE',degiro:'V60A.AS',fineco:'V60A.MI',iwbank:'V60A.MI',ibkr:'V60A.L',custom:'V60A.L'}},
+  {name:'iShares Core Moderate Allocation',isin:'IE00B4WXJJ64',cat:'Multi-Asset',ter:0.25,
+   tickers:{scalable:'AOM.DE',trade_republic:'AOM.DE',degiro:'AOM.DE',fineco:'AOM.MI',iwbank:'AOM.MI',ibkr:'AOM.DE',custom:'AOM.DE'}},
+  // ── Azionario Pacifico / Asia ──────────────────────────────────────────────
+  {name:'iShares Core MSCI Pacific ex Japan',isin:'IE00B52MJY50',cat:'Azionario Asia',ter:0.20,
+   tickers:{scalable:'IPAC.DE',trade_republic:'IPAC.DE',degiro:'IPAC.AS',fineco:'IPAC.MI',iwbank:'IPAC.MI',ibkr:'IPAC.L',custom:'IPAC.L'}},
+  {name:'iShares MSCI Japan',isin:'IE00B53QG562',cat:'Azionario Asia',ter:0.12,
+   tickers:{scalable:'IJPA.DE',trade_republic:'IJPA.DE',degiro:'IJPA.AS',fineco:'IJPA.MI',iwbank:'IJPA.MI',ibkr:'IJPA.L',custom:'IJPA.L'}},
+  {name:'iShares MSCI China',isin:'IE00BJ38CT90',cat:'Azionario Asia',ter:0.40,
+   tickers:{scalable:'CNYA.DE',trade_republic:'CNYA.DE',degiro:'CNYA.DE',fineco:'CNYA.MI',iwbank:'CNYA.MI',ibkr:'CNYA.DE',custom:'CNYA.DE'}},
+  // ── Small Cap ──────────────────────────────────────────────────────────────
+  {name:'iShares MSCI World Small Cap',isin:'IE00BF4RFH31',cat:'Azionario Small Cap',ter:0.35,
+   tickers:{scalable:'WSML.DE',trade_republic:'WSML.DE',degiro:'WSML.AS',fineco:'WSML.MI',iwbank:'WSML.MI',ibkr:'WSML.L',custom:'WSML.L'}},
+  {name:'SPDR MSCI Europe Small Cap',isin:'IE00BKWQ0M75',cat:'Azionario Small Cap EU',ter:0.30,
+   tickers:{scalable:'ZPRX.DE',trade_republic:'ZPRX.DE',degiro:'ZPRX.DE',fineco:'ZPRX.MI',iwbank:'ZPRX.MI',ibkr:'ZPRX.DE',custom:'ZPRX.DE'}},
+  // ── Dividendi ──────────────────────────────────────────────────────────────
+  {name:'Vanguard FTSE All-World High Div Yield',isin:'IE00B8GKDB10',cat:'Dividendi',ter:0.29,
+   tickers:{scalable:'VHYL.DE',trade_republic:'VHYL.DE',degiro:'VHYL.AS',fineco:'VHYL.MI',iwbank:'VHYL.MI',ibkr:'VHYL.L',custom:'VHYL.L'}},
+  {name:'iShares MSCI World Quality Dividend',isin:'IE00BYYHSM20',cat:'Dividendi',ter:0.38,
+   tickers:{scalable:'QDVW.DE',trade_republic:'QDVW.DE',degiro:'QDVW.DE',fineco:'QDVW.MI',iwbank:'QDVW.MI',ibkr:'QDVW.L',custom:'QDVW.L'}},
+  // ── Factor / Smart Beta ────────────────────────────────────────────────────
+  {name:'iShares Edge MSCI World Momentum',isin:'IE00BP3QZB59',cat:'Factor Investing',ter:0.30,
+   tickers:{scalable:'IS3R.DE',trade_republic:'IS3R.DE',degiro:'IS3R.DE',fineco:'IS3R.MI',iwbank:'IS3R.MI',ibkr:'IWMO.L',custom:'IWMO.L'}},
+  {name:'iShares Edge MSCI World Min Volatility',isin:'IE00B8FHGS14',cat:'Factor Investing',ter:0.30,
+   tickers:{scalable:'MVOL.DE',trade_republic:'MVOL.DE',degiro:'MVOL.AS',fineco:'MVOL.MI',iwbank:'MVOL.MI',ibkr:'MVOL.L',custom:'MVOL.L'}},
+  {name:'iShares Edge MSCI World Value Factor',isin:'IE00BP3QZD73',cat:'Factor Investing',ter:0.30,
+   tickers:{scalable:'IS3S.DE',trade_republic:'IS3S.DE',degiro:'IS3S.DE',fineco:'IS3S.MI',iwbank:'IS3S.MI',ibkr:'IWVL.L',custom:'IWVL.L'}},
+];
+
+
+// ═══ ISIN → TICKER PER BROKER ════════════════════════════════════════════════
+function getTickerForBroker(isin, fallbackTicker){
+  if(!isin) return fallbackTicker;
+  var broker=S.broker||'scalable';
+  var etf=ETF_DB.find(function(e){return e.isin===isin;});
+  if(etf&&etf.tickers&&etf.tickers[broker]){
+    return etf.tickers[broker];
+  }
+  return fallbackTicker;
+}
+
+// Cerca ETF per query e broker
+function searchETF(query, broker){
+  if(!query||query.length<2)return[];
+  var q=query.toLowerCase();
+  var broker_id=broker||S.broker||'scalable';
+  return ETF_DB.filter(function(e){
+    return e.name.toLowerCase().includes(q)||
+           e.isin.toLowerCase().includes(q)||
+           e.cat.toLowerCase().includes(q)||
+           (e.tickers[broker_id]&&e.tickers[broker_id].toLowerCase().includes(q));
+  }).slice(0,8);
+}
+
+// Ottieni ticker per broker corrente
+function getETFTicker(etf){
+  var broker_id=S.broker||'scalable';
+  return etf.tickers[broker_id]||etf.tickers['custom']||'';
+}
+
+
+// ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
+function etfSearchInput(val){
+  var sugg=document.getElementById('etf-suggestions');
+  if(!sugg)return;
+  if(!val||val.length<2){sugg.style.display='none';return;}
+  var results=searchETF(val,S.broker||'scalable');
+  if(!results.length){sugg.style.display='none';return;}
+  sugg.style.display='block';
+  sugg.innerHTML=results.map(function(e){
+    var ticker=getETFTicker(e);
+    return '<div onclick="etfSelect(\''+e.isin+'\')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);hover:background:var(--surface3)" '+
+      'onmouseenter="this.style.background=\'rgba(232,184,75,0.08)\'" onmouseleave="this.style.background=\'\'">'+
+      '<div style="font-weight:600;font-size:13px;color:var(--text)">'+e.name+'</div>'+
+      '<div style="display:flex;gap:8px;margin-top:3px">'+
+      '<span style="font-size:11px;color:#e8b84b;background:rgba(232,184,75,0.1);padding:1px 6px;border-radius:4px">'+ticker+'</span>'+
+      '<span style="font-size:11px;color:#4a5568">'+e.isin+'</span>'+
+      '<span style="font-size:11px;color:#4a5568">TER '+e.ter+'%</span>'+
+      '<span style="font-size:11px;color:#4a5568">'+e.cat+'</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+function etfSelect(isin){
+  var e=ETF_DB.find(function(x){return x.isin===isin;});
+  if(!e)return;
+  var ticker=getETFTicker(e);
+  // Compila il form
+  var nameEl=document.getElementById('pos-name');
+  var tickerEl=document.getElementById('pos-ticker');
+  var isinEl=document.getElementById('pos-isin');
+  if(nameEl)nameEl.value=e.name;
+  if(tickerEl)tickerEl.value=ticker;
+  if(isinEl)isinEl.value=e.isin;
+  // Chiudi suggerimenti
+  var sugg=document.getElementById('etf-suggestions');
+  if(sugg)sugg.style.display='none';
+  var search=document.getElementById('etf-search');
+  if(search)search.value='';
+  // Focus sul campo quote
+  var qtEl=document.getElementById('pos-qty');
+  if(qtEl)setTimeout(function(){qtEl.focus();},100);
+}
+
+// Chiudi suggerimenti se si clicca fuori
+document.addEventListener('click',function(e){
+  var sugg=document.getElementById('etf-suggestions');
+  var search=document.getElementById('etf-search');
+  if(sugg&&search&&!sugg.contains(e.target)&&e.target!==search){
+    sugg.style.display='none';
+  }
+});
 
 // ═══ AUTO-CORREZIONE TICKER (ticker vecchi → corretti) ════════════════════
 var TICKER_CORRECTIONS = {
@@ -1523,8 +1837,10 @@ async function fetchViaWorker(ticker, range) {
   }
 }
 
-async function fetchYChart(ticker,range){
-  const yticker=typeof yTicker!=='undefined'?yTicker(ticker):ticker;
+async function fetchYChart(ticker,range,isin){
+  // Usa ticker broker da ISIN se disponibile
+  var rawTicker=getTickerForBroker?getTickerForBroker(isin||'',ticker):ticker;
+  const yticker=typeof yTicker!=='undefined'?yTicker(rawTicker):rawTicker;
   // 1. Cloudflare Worker (fonte primaria se configurato)
   if(WORKER_URL){
     try{
@@ -1564,7 +1880,7 @@ async function fetchYChartWithFallback(ticker, range, isin){
   var effectiveISIN = isin || ISIN_MAP[ticker] || ISIN_MAP[yTicker(ticker)];
   // 1. Prova Yahoo Finance
   try{
-    return await fetchYChart(ticker, range);
+    return await fetchYChart(ticker, range, isin);
   }catch(yahooErr){
     console.warn('Yahoo storico fallito per '+ticker+', provo JustETF...');
   }
@@ -2055,62 +2371,95 @@ function openDrawer(posId){
   const curP=parseNum(pos.currentPrice)||0;
   const gl=cp.totalCost>0?cp.gain:null;
   const glp=cp.totalCost>0?cp.gainPct:null;
-  const priceHero=`<div style="text-align:center;padding:16px 0 18px;border-bottom:1px solid var(--border);margin-bottom:20px">
-    <div class="num" style="font-size:34px;font-weight:500;letter-spacing:-.04em">${curP>0?fEur(curP):'—'}</div>
-    ${pos.priceCur?`<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${pos.priceCur}</div>`:''}
-    ${gl!==null?`<div class="num" style="font-size:17px;color:${gl>=0?'var(--green)':'var(--red)'};margin-top:8px">${fEur(gl)} &nbsp;<span style="font-size:13px">(${fPct(glp)})</span></div>`:''}
-    ${pos.priceUpdatedAt?`<div style="font-size:10px;color:var(--text-muted);margin-top:5px">Prezzo aggiornato ${fTs(pos.priceUpdatedAt)}</div>`:''}
-  </div>`;
+  var glColor=gl>=0?'#4ade9e':'#f87171';
+  const priceHero='<div style="padding:12px 0 14px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">'+
+    '<div>'+
+      '<div style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#e8e9ea">'+(curP>0?fEur(curP):'—')+'</div>'+
+      (pos.priceUpdatedAt?'<div style="font-size:10px;color:#4a5568;margin-top:2px">Agg. '+fTs(pos.priceUpdatedAt)+'</div>':'')+
+    '</div>'+
+    (gl!==null?'<div style="text-align:right"><div style="font-size:16px;font-weight:700;color:'+glColor+'">'+fEur(gl)+'</div><div style="font-size:13px;color:'+glColor+';opacity:0.85">'+fPct(glp)+'</div></div>':'')+
+  '</div>';
   // Mini chart
   const hasPerfData=PC[pos.ticker]&&PC[pos.ticker].timestamps?.length;
   const miniChart=hasPerfData
-    ?`<div class="drw-sec"><div class="drw-sec-title">Andamento 12 Mesi</div><div style="height:110px;position:relative"><canvas id="drw-c-${posId}"></canvas></div></div>`
+    ?`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Andamento 12 Mesi</div><div style="height:80px;position:relative"><canvas id="drw-c-${posId}"></canvas></div></div>`
     :`<div class="drw-sec"><div style="text-align:center;padding:14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted);line-height:1.5">Carica i dati in <strong>📈 Performance</strong><br>per vedere il grafico del prezzo</div></div>`;
   // Stats
-  const stats=`<div class="drw-sec"><div class="drw-sec-title">Posizione</div>
-    <div class="drw-stat-grid">
-      <div class="drw-stat"><div class="drw-stat-lbl">Quote</div><div class="drw-stat-val">${fNum(cp.totalShares,4)}</div></div>
-      <div class="drw-stat"><div class="drw-stat-lbl">Prezzo Medio Carico</div><div class="drw-stat-val">${cp.avgCost>0?fEur(cp.avgCost):'—'}</div></div>
-      <div class="drw-stat"><div class="drw-stat-lbl">Totale Investito</div><div class="drw-stat-val">${fEur(cp.totalCost)}</div></div>
-      <div class="drw-stat"><div class="drw-stat-lbl">Valore Attuale</div><div class="drw-stat-val">${fEur(cp.currentVal)}</div></div>
-    </div>
-  </div>`;
-  // Composition bars
-  let compHtml='';
-  const mkBars=(arr,cmap,w)=>arr.slice(0,7).map(c=>`<div class="drw-comp-row">
-    <div style="width:${w}px;text-align:right;font-size:10px;color:var(--text-muted)">${c.l}</div>
-    <div class="drw-comp-track"><div class="drw-comp-fill" style="width:${(c.w*100).toFixed(0)}%;background:${cmap[c.l]||'var(--accent)'}"></div></div>
-    <div style="width:32px;text-align:right;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)">${(c.w*100).toFixed(0)}%</div>
-  </div>`).join('');
-  if(pos.countryComp?.length)compHtml+=`<div class="drw-sec"><div class="drw-sec-title">Esposizione Geografica</div>${mkBars(pos.countryComp,CC,90)}</div>`;
-  if(pos.sectorComp?.length)compHtml+=`<div class="drw-sec"><div class="drw-sec-title">Composizione Settoriale</div>${mkBars(pos.sectorComp,SC,120)}</div>`;
-  // Transactions
-  const txs=S.transactions.filter(t=>t.positionId===posId).sort((a,b)=>b.date.localeCompare(a.date));
-  let txHtml='';
-  if(txs.length){
-    txHtml=`<div class="drw-sec"><div class="drw-sec-title">Storico Acquisti (${txs.length})</div>`+
-      txs.slice(0,10).map(t=>{const tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
-        return`<div class="drw-tx-row">
-          <div><div style="font-size:12px;font-weight:500">${t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}):'—'}</div>
-          <div style="font-size:10px;color:var(--text-muted)">${fNum(parseNum(t.shares),4)} quote @ ${fEur(parseNum(t.price))}${parseNum(t.fees)>0?' + '+fEur(parseNum(t.fees))+' comm.':''}</div>
-          ${t.notes?`<div style="font-size:10px;color:var(--text-muted);font-style:italic">${esc(t.notes)}</div>`:''}</div>
-          <div class="num" style="font-size:13px;font-weight:600">${fEur(tot)}</div>
-        </div>`;
-      }).join('')+`</div>`;
+  var SC_='background:#161e2e;border-radius:6px;padding:8px 10px;box-sizing:border-box;flex:0 0 48%;max-width:48%';
+  var SL_='font-size:9px;color:#7a90a8;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em';
+  var SV_='font-family:monospace;font-size:13px;font-weight:600;color:#e8e9ea';
+  const stats='<div style="margin-bottom:22px">'+
+    '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Posizione</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Quote</div><div style="'+SV_+'">'+fNum(cp.totalShares,4)+'</div></div>'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Prezzo Medio Carico</div><div style="'+SV_+'">'+(cp.avgCost>0?fEur(cp.avgCost):'—')+'</div></div>'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Totale Investito</div><div style="'+SV_+'">'+fEur(cp.totalCost)+'</div></div>'+
+      '<div style="'+SC_+'"><div style="'+SL_+'">Valore Attuale</div><div style="'+SV_+'">'+fEur(cp.currentVal)+'</div></div>'+
+    '</div>'+
+  '</div>';
+  // Composition bars — redesign con barre orizzontali visibili
+  var compHtml='';
+  var mkBars2=function(arr,cmap,title){
+    if(!arr||!arr.length)return'';
+    var rows=arr.slice(0,7).map(function(c){
+      var pct=(c.w*100).toFixed(0);
+      var color=cmap[c.l]||'#e8b84b';
+      return'<div style="margin-bottom:5px">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px">'+
+          '<span style="font-size:11px;color:#7a90a8">'+c.l+'</span>'+
+          '<span style="font-size:11px;font-weight:600;color:#e8e9ea">'+pct+'%</span>'+
+        '</div>'+
+        '<div style="height:3px;background:#161e2e;border-radius:2px">'+
+          '<div style="height:3px;border-radius:2px;background:'+color+';width:'+pct+'%"></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    return'<div style="margin-bottom:20px">'+
+      '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">'+title+'</div>'+
+      rows+'</div>';
+  };
+  if((pos.countryComp&&pos.countryComp.length)||(pos.sectorComp&&pos.sectorComp.length)){
+    compHtml+='<div style="display:flex;gap:16px;margin-bottom:16px">';
+    if(pos.countryComp&&pos.countryComp.length)compHtml+='<div style="flex:1;min-width:0">'+mkBars2(pos.countryComp,CC,'Geografica')+'</div>';
+    if(pos.sectorComp&&pos.sectorComp.length)compHtml+='<div style="flex:1;min-width:0">'+mkBars2(pos.sectorComp,SC,'Settoriale')+'</div>';
+    compHtml+='</div>';
   }
-  // Actions
+    // Transactions — redesign
+  const txs=S.transactions.filter(t=>t.positionId===posId).sort((a,b)=>b.date.localeCompare(a.date));
+  var txHtml='';
+  if(txs.length){
+    var txRows=txs.slice(0,10).map(function(t){
+      var tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
+      var d=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}):'—';
+      return'<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'+
+        '<div>'+
+          '<div style="font-size:12px;font-weight:600;color:#e8e9ea">'+d+'</div>'+
+          '<div style="font-size:11px;color:#4a5568;margin-top:2px">'+fNum(parseNum(t.shares),4)+' quote @ '+fEur(parseNum(t.price))+(parseNum(t.fees)>0?' + '+fEur(parseNum(t.fees)):'')+' </div>'+
+          (t.notes?'<div style="font-size:10px;color:#4a5568;font-style:italic">'+esc(t.notes)+'</div>':'')+
+        '</div>'+
+        '<div style="font-size:13px;font-weight:700;color:#e8b84b;white-space:nowrap;margin-left:8px">'+fEur(tot)+'</div>'+
+      '</div>';
+    }).join('');
+    txHtml='<div style="margin-bottom:14px">'+
+      '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Storico Acquisti ('+txs.length+')</div>'+
+      txRows+'</div>';
+  }
+    // Actions
   const actions=`<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
     <button class="btn btn-ghost" style="flex:1;justify-content:center;min-width:130px" onclick="closeDrawer();openPriceModal('${posId}',${curP})">💰 Aggiorna Prezzo</button>
     <button class="btn btn-primary" style="flex:1;justify-content:center;min-width:130px" onclick="closeDrawer();switchTab('transactions');setTimeout(()=>{openModal('transaction');document.getElementById('tx-pos').value='${posId}'},80)">+ Aggiungi Acquisto</button>
   </div>
   <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="closeDrawer();switchTab('portfolio');setTimeout(()=>editPos('${posId}'),80)">✏️ Modifica Strumento</button>`;
   document.getElementById('drw-bd').innerHTML=priceHero+miniChart+stats+compHtml+txHtml+actions;
+  var drwEl=document.getElementById('drw');drwEl.style.transform='translateX(0)';
   document.getElementById('drw-ov').classList.add('open');
   document.body.style.overflow='hidden';
   if(hasPerfData)requestAnimationFrame(()=>buildMiniChart(posId,pos.ticker));
 }
 
 function closeDrawer(){
+  var drwEl=document.getElementById('drw');
+  if(drwEl)drwEl.style.transform='translateX(105%)';
   document.getElementById('drw-ov').classList.remove('open');
   document.body.style.overflow='';
 }
@@ -2123,12 +2472,17 @@ function buildMiniChart(posId,ticker){
   for(let i=0;i<h.timestamps.length;i++){if(h.timestamps[i]>=cut&&h.closes[i]!=null)pts.push({x:new Date(h.timestamps[i]*1000).toISOString().slice(0,10),y:h.closes[i]});}
   if(!pts.length)return;
   const isUp=pts[pts.length-1].y>=pts[0].y;
+  var ptsFiltered=pts.filter(function(_,i){return i%3===0;});
   CH['drw-'+posId]=new Chart(ctx,{type:'line',
-    data:{datasets:[{data:pts.filter((_,i)=>i%2===0),borderColor:isUp?'#4ade9e':'#f76d6d',backgroundColor:isUp?'rgba(74,222,158,.1)':'rgba(247,109,109,.08)',fill:true,tension:.3,borderWidth:1.5,pointRadius:0}]},
-    options:{responsive:true,maintainAspectRatio:false,parsing:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fEur(c.raw.y)}`}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:7}},
-        y:{grid:{color:'rgba(38,48,64,.6)'},ticks:{color:'#7a90a8',font:{size:9},callback:v=>fEur(v,0),maxTicksLimit:4},position:'right'}}}});
+    data:{labels:ptsFiltered.map(function(p){return p.x;}),
+          datasets:[{data:ptsFiltered.map(function(p){return p.y;}),
+            borderColor:isUp?'#4ade9e':'#f76d6d',
+            backgroundColor:isUp?'rgba(74,222,158,.1)':'rgba(247,109,109,.08)',
+            fill:true,tension:.3,borderWidth:1.5,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return fEur(c.raw);}}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:5}},
+        y:{grid:{color:'rgba(38,48,64,.6)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return fEur(v,0);},maxTicksLimit:4},position:'right'}}}});
 }
 
 // ─── Dashboard filter ──────────────────────────────────────────────────────
@@ -2509,7 +2863,8 @@ function rHeatmap(cp,tv){
   h+='</tr></thead><tbody>';
   pos.forEach(function(p){
     var rets=monthlyRet(PC[p.ticker]);
-    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;white-space:nowrap;color:var(--text)">'+p.ticker+'</td>';
+    var shortName=p.name?p.name.replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim().slice(0,22):p.ticker;
+    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 8px;white-space:nowrap;color:var(--text);min-width:120px"><div style="font-size:11px;font-weight:600">'+shortName+'</div><div style="font-size:9px;color:#4a5568">'+p.ticker+'</div></td>';
     months.forEach(function(m){
       var v=rets[m]!=null?rets[m]:null;
       h+='<td style="padding:3px;text-align:center;background:'+hmBg(v)+';color:'+hmTxt(v)+';border-radius:3px">';
@@ -2523,56 +2878,88 @@ function rHeatmap(cp,tv){
 }
 
 function rPeriodTable(cp,tv){
-  const el=document.getElementById('per-table');if(!el)return;
-  const pos=cp.filter(p=>p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0);
+  var el=document.getElementById('per-table');if(!el)return;
+  var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0;});
   if(!pos.length){
-    // Controlla se ci sono dati in PC ma senza timestamps
-    const hasSomePC=cp.some(p=>p.ticker&&PC[p.ticker]);
-    const msg=hasSomePC
-      ? 'Dati parziali — clicca "↺ Forza ricarica" per caricare lo storico completo.'
-      : 'Vai in Performance → "↺ Forza ricarica" per caricare i dati storici.';
-    el.innerHTML='<tr><td colspan="9" style="color:var(--text-muted);padding:12px;font-size:12px">'+msg+'</td></tr>';
+    el.innerHTML='<p style="color:var(--text-muted);padding:12px;font-size:12px">Carica i dati con ↺ Forza ricarica.</p>';
     return;
   }
 
   function pv(val){
-    if(val===null||val===undefined)return'<span style="color:var(--text-muted)">N/D</span>';
-    const color=val>=0?'var(--green)':'var(--red)';
-    return`<span style="color:${color};font-weight:600">${val>=0?'+':''}${val.toFixed(2)}%</span>`;
+    if(val===null||val===undefined)return'<span style="color:#4a5568;font-size:11px">N/D</span>';
+    var color=val>=0?'#4ade9e':'#f87171';
+    return'<span style="color:'+color+';font-weight:600">'+(val>=0?'+':'')+val.toFixed(1)+'%</span>';
   }
 
-  let rows='';
-  pos.forEach(p=>{
-    rows+=`<tr style="border-bottom:1px solid var(--border)">`;
-    rows+=`<td style="padding:8px;white-space:nowrap">
-      <div style="font-weight:600;font-size:12px">${p.ticker}</div>
-      <div style="font-size:10px;color:var(--text-muted)">${p.name.replace(/iShares|Amundi|Xtrackers|VanEck/gi,'').trim().slice(0,20)}</div>
-    </td>`;
-    PERF_PERIODS.forEach(per=>{
-      rows+=`<td style="padding:8px;text-align:center">${pv(getR(p.ticker,per))}</td>`;
+  var isMob=window.innerWidth<900;
+
+  if(isMob){
+    // Layout card su mobile
+    var cards=pos.map(function(p){
+      var rows=PERF_PERIODS.map(function(per){
+        var r=getR(p.ticker,per);
+        return'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
+          '<span style="color:#7a90a8;font-size:12px">'+per.l+'</span>'+
+          pv(r)+'</div>';
+      }).join('');
+      var tc=p.totalCost>0?p.gainPct:null;
+      return'<div style="background:#0f1520;border:1px solid #1e2a3a;border-radius:10px;padding:12px;margin-bottom:10px">'+
+        '<div style="margin-bottom:8px"><div style="font-weight:700;font-size:13px;color:#e8e9ea">'+
+        (p.name||p.ticker).replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim().slice(0,28)+
+        '</div><div style="font-size:10px;color:#4a5568;margin-top:1px">'+p.ticker+'</div></div>'+
+        rows+
+        '<div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px">'+
+        '<span style="color:#7a90a8;font-size:12px">Dal mio acq.</span>'+pv(tc)+'</div>'+
+        '</div>';
+    }).join('');
+
+    // Card portafoglio
+    var portRows=PERF_PERIODS.map(function(per){
+      var wsum=0,wval=0;
+      pos.forEach(function(p){var r=getR(p.ticker,per);if(r!==null&&p.currentVal>0){wsum+=r*p.currentVal;wval+=p.currentVal;}});
+      return'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
+        '<span style="color:#7a90a8;font-size:12px">'+per.l+'</span>'+pv(wval>0?wsum/wval:null)+'</div>';
+    }).join('');
+    var tc2=cp.reduce(function(a,p){return a+(p.totalCost||0);},0);
+    var tg=tc2>0?(tv-tc2)/tc2*100:null;
+
+    el.innerHTML=cards+
+      '<div style="background:rgba(232,184,75,0.06);border:1px solid rgba(232,184,75,0.2);border-radius:10px;padding:12px;margin-bottom:10px">'+
+      '<div style="font-weight:700;font-size:13px;color:#e8b84b;margin-bottom:8px">📊 Portafoglio</div>'+
+      portRows+
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;margin-top:2px">'+
+      '<span style="color:#7a90a8;font-size:12px">Dal mio acq.</span>'+pv(tg)+'</div>'+
+      '</div>';
+  } else {
+    // Tabella desktop
+    var rows='';
+    pos.forEach(function(p){
+      rows+='<tr style="border-bottom:1px solid var(--border)">';
+      rows+='<td style="padding:8px;white-space:nowrap"><div style="font-weight:600;font-size:12px">'+(p.name||p.ticker).replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim().slice(0,22)+'</div>'+
+        '<div style="font-size:10px;color:var(--text-muted)">'+p.ticker+'</div></td>';
+      PERF_PERIODS.forEach(function(per){rows+='<td style="padding:8px;text-align:center">'+pv(getR(p.ticker,per))+'</td>';});
+      rows+='<td style="padding:8px;text-align:center">'+pv(p.totalCost>0?p.gainPct:null)+'</td>';
+      rows+='</tr>';
     });
-    rows+=`<td style="padding:8px;text-align:center">${pv(p.totalCost>0?p.gainPct:null)}</td>`;
+    rows+='<tr style="border-top:2px solid rgba(232,184,75,0.3);background:rgba(232,184,75,0.04);font-weight:700">';
+    rows+='<td style="padding:8px;font-size:12px;color:#e8b84b">📊 Portafoglio</td>';
+    PERF_PERIODS.forEach(function(per){
+      var wsum=0,wval=0;
+      pos.forEach(function(p){var r=getR(p.ticker,per);if(r!==null&&p.currentVal>0){wsum+=r*p.currentVal;wval+=p.currentVal;}});
+      rows+='<td style="padding:8px;text-align:center">'+pv(wval>0?wsum/wval:null)+'</td>';
+    });
+    var tc3=cp.reduce(function(a,p){return a+(p.totalCost||0);},0);
+    var tg3=tc3>0?(tv-tc3)/tc3*100:null;
+    rows+='<td style="padding:8px;text-align:center">'+pv(tg3)+'</td>';
     rows+='</tr>';
-  });
 
-  // Riga portafoglio totale
-  rows+='<tr style="border-top:2px solid var(--accent-dim);background:rgba(232,184,75,.04);font-weight:700">';
-  rows+=`<td style="padding:8px;font-size:12px;color:var(--accent)">📊 Portafoglio</td>`;
-  PERF_PERIODS.forEach(per=>{
-    // Media ponderata per valore
-    let wsum=0,wval=0;
-    pos.forEach(p=>{
-      const r=getR(p.ticker,per);
-      if(r!==null&&p.currentVal>0){wsum+=r*p.currentVal;wval+=p.currentVal;}
-    });
-    rows+=`<td style="padding:8px;text-align:center">${pv(wval>0?wsum/wval:null)}</td>`;
-  });
-  const tc=cp.reduce((a,p)=>a+(p.totalCost||0),0);
-  const tg=tc>0?(tv-tc)/tc*100:null;
-  rows+=`<td style="padding:8px;text-align:center">${pv(tg)}</td>`;
-  rows+='</tr>';
-
-  el.innerHTML=rows;
+    el.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead><tr style="font-size:10px;color:var(--text-muted)">'+
+      '<th style="padding:8px;text-align:left">STRUMENTO</th>'+
+      PERF_PERIODS.map(function(p){return'<th style="padding:8px;text-align:center;white-space:nowrap">'+p.l+'</th>';}).join('')+
+      '<th style="padding:8px;text-align:center">TOT</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
 }
 
 function rperf(){
@@ -2602,8 +2989,10 @@ function rperf(){
   } else {
     var hmEl=document.getElementById('hm-inner');
     var ptEl=document.getElementById('per-table');
-    if(hmEl)hmEl.innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
-    if(ptEl)ptEl.innerHTML='<p style="color:#7a90a8;font-size:12px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
+  var loadMsg='<div style="display:flex;align-items:center;gap:8px;padding:12px;color:#7a90a8;font-size:13px">'+
+      '<span class="spinner"></span> Caricamento dati storici in corso...</div>';
+    if(hmEl)hmEl.innerHTML=loadMsg;
+    if(ptEl)ptEl.innerHTML=loadMsg;
   }
   if(!hasPCNow&&!perfAutoLoaded&&S.positions.some(function(p){return p.ticker;})){
     perfAutoLoaded=true;
@@ -3864,7 +4253,17 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 // Forza ordine dashboard con perf prima
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
-loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();
+loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
+// Auto-carica dati storici in background se non presenti
+setTimeout(function(){
+  var hasPCData=Object.keys(PC).some(function(k){
+    return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;
+  });
+  if(!hasPCData&&S.positions&&S.positions.some(function(p){return p.ticker;})){
+    console.log('[PACcamelo] Auto-caricamento dati storici in background...');
+    loadPerfData();
+  }
+}, 3000);
 
 updateDB();initTips();initTabDrag();autoRefreshCheck();setTimeout(function(){updateBottomNav('dashboard');},100);
 // Auto-load performance data on startup
@@ -3997,6 +4396,18 @@ function closeSettingsModal(){
   var m=document.getElementById('settings-modal');if(m)m.classList.remove('open');
 }
 function switchSettingsTab(tab){
+  var panels=['spanel-broker','spanel-backup','spanel-drive','spanel-tutorial'];
+  panels.forEach(function(p){var el=document.getElementById(p);if(el)el.style.display='none';});
+  var tabs=['stab-broker','stab-backup','stab-drive','stab-tutorial'];
+  tabs.forEach(function(t){var el=document.getElementById(t);if(el)el.classList.remove('btn-primary');});
+  var panel=document.getElementById('spanel-'+tab);
+  var tabBtn=document.getElementById('stab-'+tab);
+  if(panel)panel.style.display='';
+  if(tabBtn)tabBtn.classList.add('btn-primary');
+  // Legacy broker panel render
+  if(tab==='broker'&&typeof renderBrokerPanel==='function')renderBrokerPanel(document.getElementById('spanel-broker'));
+  return; // Skip old logic below
+
   ['broker','backup','drive'].forEach(function(t){
     var btn=document.getElementById('stab-'+t);
     var p=document.getElementById('spanel-'+t);
@@ -4038,7 +4449,7 @@ function switchSettingsTab(tab){
 </script>
 
 <div id="drw-ov" onclick="if(event.target===this)closeDrawer()">
-  <div id="drw">
+  <div id="drw" style="position:fixed!important;right:0;top:0;bottom:0;width:480px;max-width:92vw;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;z-index:151;transform:translateX(105%);transition:transform .3s ease">
     <div id="drw-hd">
       <div style="min-width:0">
         <div class="drw-title" id="drw-name"></div>
@@ -4046,7 +4457,7 @@ function switchSettingsTab(tab){
       </div>
       <button class="drw-close" onclick="closeDrawer()">×</button>
     </div>
-    <div id="drw-bd"></div>
+    <div id="drw-bd" style="padding:16px 18px 80px 18px"></div>
   </div>
 </div>
 
@@ -4090,10 +4501,27 @@ function switchSettingsTab(tab){
       <button id="stab-broker" onclick="switchSettingsTab('broker')" class="btn btn-ghost btn-sm" style="flex:1">🏦 Broker</button>
       <button id="stab-backup" onclick="switchSettingsTab('backup')" class="btn btn-ghost btn-sm" style="flex:1">💾 Backup</button>
       <button id="stab-drive" onclick="switchSettingsTab('drive')" class="btn btn-ghost btn-sm" style="flex:1">☁ Drive</button>
+      <button id="stab-tutorial" onclick="switchSettingsTab('tutorial')" class="btn btn-ghost btn-sm" style="flex:1">📖 Tutorial</button>
     </div>
     <div id="spanel-broker">
       <div id="broker-panel-inner"></div>
       <script>document.addEventListener('DOMContentLoaded',function(){if(typeof renderBrokerPanel==='function')renderBrokerPanel(document.getElementById('spanel-broker'));});</script>
+    </div>
+    <div id="spanel-tutorial" style="display:none">
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Rivedi il tutorial introduttivo o leggi la guida rapida per ogni sezione.</p>
+      <button class="btn btn-primary" onclick="closeSettingsModal();startOnboarding()" style="width:100%;margin-bottom:12px">🐪 Rivedi tutorial introduttivo</button>
+      <div style="margin-top:16px">
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">📊 Dashboard</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Panoramica del portafoglio: valore totale, gain/loss, XIRR annualizzato e indicatori di salute del PAC. I grafici mostrano la crescita del capitale nel tempo.</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">💼 Portafoglio</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Lista delle tue posizioni con valore attuale, gain% e sparkline. Usa la barra in cima per vedere il rendimento in diversi periodi storici (richiede dati storici caricati).</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">📈 Performance</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Grafici storici, heatmap dei rendimenti mensili, confronto per periodo e tabella rendimenti. Richiede il primo caricamento con "↺ Forza ricarica".</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">📋 Transazioni</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Storico di tutti gli acquisti effettuati, ordinati per data. Ogni acquisto è modificabile dal drawer della posizione.</p></details>
+        <details style="margin-bottom:8px"><summary style="cursor:pointer;color:var(--text);font-size:13px;padding:8px;background:var(--surface2);border-radius:6px">🧮 Simulatore</summary>
+          <p style="font-size:12px;color:var(--text-muted);padding:8px">Proietta la crescita futura del portafoglio in base a rendimento atteso e versamenti mensili pianificati.</p></details>
+      </div>
     </div>
     <div id="spanel-backup" style="display:none">
       <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">Esporta o importa i dati del portafoglio.</p>
@@ -4108,6 +4536,35 @@ function switchSettingsTab(tab){
     </div>
   </div>
 </div>
+
+
+<!-- ═══ ONBOARDING ═══════════════════════════════════════════════════════════ -->
+<div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,12,20,0.97);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="max-width:480px;width:100%;text-align:center">
+    <!-- Step indicator -->
+    <div id="ob-steps" style="display:flex;gap:6px;justify-content:center;margin-bottom:32px">
+      <div class="ob-dot ob-dot-active"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+      <div class="ob-dot"></div>
+    </div>
+
+    <!-- Step content -->
+    <div id="ob-content"></div>
+
+    <!-- Navigation -->
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:32px">
+      <button id="ob-back" onclick="obNav(-1)" style="display:none;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:10px 24px;border-radius:10px;cursor:pointer;font-size:14px">← Indietro</button>
+      <button id="ob-next" onclick="obNav(1)" style="background:#e8b84b;border:none;color:#080c14;padding:10px 32px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700">Inizia →</button>
+    </div>
+    <button onclick="obSkip()" style="background:none;border:none;color:#4a5568;font-size:12px;cursor:pointer;margin-top:16px">Salta il tutorial</button>
+  </div>
+</div>
+
+<style>
+.ob-dot{width:8px;height:8px;border-radius:50%;background:#263040;transition:all .2s}
+.ob-dot-active{background:#e8b84b;transform:scale(1.3)}
+</style>
 
 </body>
 </html>
