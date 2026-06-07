@@ -640,6 +640,13 @@ function updateBottomNav(tab){
       <h2 class="section-title">Transazioni</h2>
       <button class="btn btn-primary" onclick="openModal('transaction')">+ Aggiungi Acquisto</button>
     </div>
+    <!-- Ricerca ETF in Transazioni -->
+    <div style="position:relative;margin-bottom:14px">
+      <input id="tx-etf-search" type="text" placeholder="🔍 Cerca ETF e aggiungi acquisto..." autocomplete="off"
+        oninput="txEtfSearch(this.value)"
+        style="width:100%;padding:10px 14px;background:#0f1520;border:1px solid #263040;border-radius:10px;color:#e8e9ea;font-size:14px;box-sizing:border-box">
+      <div id="tx-etf-suggestions" style="display:none;position:absolute;z-index:200;background:#0f1520;border:1px solid #263040;border-radius:10px;margin-top:4px;max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);width:100%"></div>
+    </div>
     <div class="table-wrapper" id="tx-table-wrap"><table>
       <thead><tr><th>Data</th><th>Strumento</th><th>Quote</th><th>Prezzo €</th><th>Comm. €</th><th>Totale €</th><th>Note</th><th></th></tr></thead>
       <tbody id="tx-tbody"></tbody>
@@ -1696,6 +1703,105 @@ function getETFTicker(etf){
   return etf.tickers[broker_id]||etf.tickers['custom']||'';
 }
 
+
+
+// ═══ RICERCA ETF IN TRANSAZIONI ══════════════════════════════════════════════
+function txEtfSearch(val){
+  var sugg=document.getElementById('tx-etf-suggestions');
+  if(!sugg)return;
+  if(!val||val.length<2){sugg.style.display='none';return;}
+  var results=searchETF(val,S.broker||'scalable');
+  if(!results.length){sugg.style.display='none';return;}
+  sugg.style.display='block';
+  sugg.innerHTML=results.map(function(e){
+    var ticker=getETFTicker(e);
+    // Controlla se già in portafoglio
+    var inPortfolio=S.positions.find(function(p){return p.isin===e.isin||(p.ticker&&(p.ticker===ticker||p.ticker===e.isin));});
+    var badge=inPortfolio
+      ? '<span style="font-size:10px;background:rgba(74,222,158,0.15);color:#4ade9e;padding:1px 6px;border-radius:4px;margin-left:4px">già in portafoglio</span>'
+      : '<span style="font-size:10px;background:rgba(232,184,75,0.1);color:#e8b84b;padding:1px 6px;border-radius:4px;margin-left:4px">nuovo</span>';
+    return '<div onclick="txEtfSelect(\''+e.isin+'\')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05)"'+
+      ' onmouseenter="this.style.background=\'rgba(232,184,75,0.06)\'" onmouseleave="this.style.background=\'\'">' +
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        '<span style="font-weight:600;font-size:13px;color:#e8e9ea">'+e.name+'</span>'+badge+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-top:3px">'+
+        '<span style="font-size:11px;color:#e8b84b;background:rgba(232,184,75,0.1);padding:1px 6px;border-radius:4px">'+ticker+'</span>'+
+        '<span style="font-size:11px;color:#4a5568">'+e.isin+'</span>'+
+        '<span style="font-size:11px;color:#4a5568">TER '+e.ter+'%</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function txEtfSelect(isin){
+  var e=ETF_DB.find(function(x){return x.isin===isin;});
+  if(!e)return;
+  var ticker=getETFTicker(e);
+  // Chiudi suggerimenti
+  var sugg=document.getElementById('tx-etf-suggestions');
+  if(sugg)sugg.style.display='none';
+  var search=document.getElementById('tx-etf-search');
+  if(search)search.value='';
+
+  // Controlla se la posizione esiste già
+  var existing=S.positions.find(function(p){
+    return p.isin===isin||(p.ticker&&(p.ticker===ticker||p.ticker===e.isin));
+  });
+
+  if(existing){
+    // Posizione già esistente: apri direttamente il modal acquisto
+    openModal('transaction');
+    // Pre-seleziona la posizione
+    setTimeout(function(){
+      var sel=document.getElementById('tx-pos');
+      if(sel){
+        for(var i=0;i<sel.options.length;i++){
+          if(sel.options[i].value===existing.id){sel.selectedIndex=i;break;}
+        }
+      }
+    },100);
+  } else {
+    // Nuova posizione: aggiungila e poi apri il form acquisto
+    var newPos={
+      id:'dp'+Date.now(),
+      name:e.name,
+      ticker:ticker,
+      isin:e.isin,
+      assetClass:e.cat,
+      region:'',
+      sector:'',
+      currentPrice:0,
+      priceCur:'EUR',
+      priceUpdatedAt:null,
+      tickerWarn:false,
+      countryComp:null,
+      sectorComp:null
+    };
+    S.positions.push(newPos);
+    saveS();
+    toast('✓ '+e.name+' aggiunto al portafoglio','ok');
+    openModal('transaction');
+    setTimeout(function(){
+      var sel=document.getElementById('tx-pos');
+      if(sel){
+        for(var i=0;i<sel.options.length;i++){
+          if(sel.options[i].value===newPos.id){sel.selectedIndex=i;break;}
+        }
+      }
+      rport();
+    },150);
+  }
+}
+
+// Chiudi suggerimenti se si clicca fuori
+document.addEventListener('click',function(e){
+  var sugg=document.getElementById('tx-etf-suggestions');
+  var search=document.getElementById('tx-etf-search');
+  if(sugg&&search&&!sugg.contains(e.target)&&e.target!==search){
+    sugg.style.display='none';
+  }
+});
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
 function etfSearchInput(val){
