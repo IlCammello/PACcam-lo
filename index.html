@@ -1286,10 +1286,11 @@ function setPortPeriod(per){
 function getSparkData(ticker){
   var h=PC[ticker]; if(!h||!h.timestamps||h.timestamps.length<2) return null;
   var ts=h.timestamps, cs=h.closes;
-  var days=_portPeriod==='max'?99999:_portPeriod==='ytd'?365:
+  var days=_portPeriod==='max'?99999:_portPeriod==='ytd'?
+    Math.round((Date.now()/1000-new Date(new Date().getFullYear(),0,1).getTime()/1000)/86400):
     _portPeriod==='1y'?365:_portPeriod==='3m'?90:
-    _portPeriod==='1m'?30:_portPeriod==='1w'?7:99999;
-  var cutoff=ts[ts.length-1]-days*86400;
+    _portPeriod==='1m'?30:_portPeriod==='1w'?7:_portPeriod==='1d'?2:99999;
+  var cutoff=days>=99999?ts[0]:ts[ts.length-1]-days*86400;
   var from=ts.findIndex(function(t){return t>=cutoff;});
   if(from<0)from=0;
   var data=cs.slice(from).filter(function(v){return v!=null;});
@@ -1350,6 +1351,19 @@ function rport(){
           <div style="font-weight:800;font-size:15px;color:var(--accent)">${p.currentVal>0?fEur(p.currentVal):'—'}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${p.currentPrice>0?fEur(p.currentPrice):''}</div>
           ${PC[p.ticker]&&PC[p.ticker].timestamps?'<canvas id="spark-'+p.id+'" width="80" height="28" style="display:block;margin-top:4px;opacity:0.3"></canvas>':''} 
+          ${(function(){
+            // Mostra gain% in base al periodo selezionato
+            var pr=null;
+            if(_portPeriod==='cur'||_portPeriod==='max'){
+              // Attuale/Max: gain% dal prezzo medio di carico
+              return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
+            } else {
+              // Periodo: rendimento price-return del periodo
+              try{pr=getPortPeriodReturn(p.ticker);}catch(e){}
+              if(pr===null||isNaN(pr))return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
+              return '<div style="font-size:12px;font-weight:700;color:'+(pr>=0?'var(--green)':'var(--red)')+'">'+PORT_PERIODS[_portPeriod].label+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';
+            }
+          })()}
           <div style="font-size:12px;font-weight:700;color:${gainColor};margin-top:2px">${p.totalCost>0?fPct(p.gainPct):'—'}</div>
           ${(function(){try{if(_portPeriod==='cur'||!p.ticker)return '';var pr=getPortPeriodReturn(p.ticker);if(pr===null||isNaN(pr))return '';var lbl=PORT_PERIODS[_portPeriod]?PORT_PERIODS[_portPeriod].label:_portPeriod;return '<div style="font-size:10px;color:'+(pr>=0?'var(--green)':'var(--red)')+';margin-top:1px">'+lbl+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';}catch(e){return '';}})()}
         </div>
@@ -1564,7 +1578,7 @@ var ETF_DB = [
    tickers:{scalable:'IESE.DE',trade_republic:'IESE.DE',degiro:'IESE.AS',fineco:'IESE.MI',iwbank:'IESE.MI',ibkr:'IESE.L',custom:'IESE.L'}},
   // ── Azionario Mercati Emergenti ────────────────────────────────────────────
   {name:'iShares MSCI Emerging Markets (Dist)',isin:'IE00B4L5Y696',cat:'Mercati Emergenti',ter:0.18,
-   tickers:{scalable:'SEMA.DE',trade_republic:'SEMA.DE',degiro:'SEMA.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
+   tickers:{scalable:'IS3N.DE',trade_republic:'IS3N.DE',degiro:'EMIM.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
   {name:'iShares MSCI Emerging Markets',isin:'IE00B4L5YC18',cat:'Mercati Emergenti',ter:0.18,
    tickers:{scalable:'IS3N.DE',trade_republic:'IS3N.DE',degiro:'EMIM.AS',fineco:'SEMA.MI',iwbank:'SEMA.MI',ibkr:'SEMA.L',custom:'SEMA.L'}},
   {name:'Vanguard FTSE Emerging Markets',isin:'IE00B3VVMM84',cat:'Mercati Emergenti',ter:0.22,
@@ -1579,7 +1593,7 @@ var ETF_DB = [
   {name:'iShares Digitalisation',isin:'IE00BYZK4552',cat:'Tematico Tech',ter:0.40,
    tickers:{scalable:'DGTL.DE',trade_republic:'DGTL.DE',degiro:'DGTL.AS',fineco:'DGTL.MI',iwbank:'DGTL.MI',ibkr:'DGTL.L',custom:'DGTL.L'}},
   {name:'VanEck Quantum Computing',isin:'IE0005E5A897',cat:'Tematico Tech',ter:0.49,
-   tickers:{scalable:'QNTM.DE',trade_republic:'QNTM.DE',degiro:'QNTM.DE',fineco:'QNTM.MI',iwbank:'QNTM.MI',ibkr:'QNTM.L',custom:'QNTM.L'}},
+   tickers:{scalable:'VQCT.DE',trade_republic:'VQCT.DE',degiro:'VQCT.DE',fineco:'QNTM.MI',iwbank:'QNTM.MI',ibkr:'QNTM.L',custom:'QNTM.L'}},
   {name:'iShares Automation & Robotics',isin:'IE00BYZK4669',cat:'Tematico Tech',ter:0.40,
    tickers:{scalable:'RBOT.DE',trade_republic:'RBOT.DE',degiro:'RBOT.AS',fineco:'RBOT.MI',iwbank:'RBOT.MI',ibkr:'RBOT.L',custom:'RBOT.L'}},
   {name:'L&G Cyber Security',isin:'IE00BYPLS672',cat:'Tematico Tech',ter:0.75,
@@ -1650,9 +1664,13 @@ var ETF_DB = [
 
 // ═══ ISIN → TICKER PER BROKER ════════════════════════════════════════════════
 function getTickerForBroker(isin, fallbackTicker){
-  if(!isin) return fallbackTicker;
   var broker=S.broker||'scalable';
-  var etf=ETF_DB.find(function(e){return e.isin===isin;});
+  // Risolvi ISIN: usa quello passato o cercalo in ISIN_MAP dal ticker
+  var resolvedISIN=isin||
+    (ISIN_MAP&&ISIN_MAP[fallbackTicker])||
+    (ISIN_MAP&&ISIN_MAP[yTicker(fallbackTicker)])||'';
+  if(!resolvedISIN) return fallbackTicker;
+  var etf=ETF_DB.find(function(e){return e.isin===resolvedISIN;});
   if(etf&&etf.tickers&&etf.tickers[broker]){
     return etf.tickers[broker];
   }
@@ -1760,17 +1778,22 @@ function ensureISINs(){
 
 // ═══ ISIN MAP per JustETF fallback ═══════════════════════════════════════════
 var ISIN_MAP = {
-  'SWDA.L':  'IE00B4L5Y983',
-  'SEMA.L':  'IE00B4L5Y696',
-  'MEUD.PA': 'LU1681043599',
-  'XAIX.DE': 'IE00BGV5VN51',
-  'SGLN.L':  'IE00B4ND3602',
-  'XEON.DE': 'LU0290358497',
-  'QNTM.L':  'IE0005E5A897',
-  'VQTM.DE': 'IE0005E5A897',
-  'CH1199067674.SG': 'CH1199067674',
-  'LYQ6.DE': 'LU2421926404',
-  'EM1015':  'LU2421926404'
+  'SWDA.L':  'IE00B4L5Y983', 'SWDA': 'IE00B4L5Y983',
+  'SEMA.L':  'IE00B4L5Y696', 'SEMA': 'IE00B4L5Y696',
+  'MEUD.PA': 'LU1681043599', 'MEUD': 'LU1681043599',
+  'XAIX.DE': 'IE00BGV5VN51', 'XAIX': 'IE00BGV5VN51',
+  'SGLN.L':  'IE00B4ND3602', 'SGLN': 'IE00B4ND3602',
+  'XEON.DE': 'LU0290358497', 'XEON': 'LU0290358497',
+  'QNTM.L':  'IE0005E5A897', 'QNTM': 'IE0005E5A897',
+  'VQTM.DE': 'IE0005E5A897', 'VQCT.DE': 'IE0005E5A897',
+  'CH1199067674.SG': 'CH1199067674', 'CBTC.SW': 'CH1199067674',
+  'LYQ6.DE': 'LU2421926404', 'EM1015': 'LU2421926404',
+  'IE00B4L5Y983': 'IE00B4L5Y983',
+  'IE00B4L5Y696': 'IE00B4L5Y696',
+  'IE00BGV5VN51': 'IE00BGV5VN51',
+  'IE00B4ND3602': 'IE00B4ND3602',
+  'IE0005E5A897': 'IE0005E5A897',
+  'CH1199067674': 'CH1199067674'
 };
 
 // Fetch prezzo corrente da JustETF tramite proxy CORS
@@ -1907,14 +1930,23 @@ async function updateAllPrices(){
   const wt=S.positions.filter(p=>p.ticker);if(!wt.length){toast('Nessun ticker','err');return;}
   const btn=document.getElementById('btn-upd');const st=document.getElementById('price-upd-status');
   btn.disabled=true;let upd=0,fail=[];
-  for(const pos of wt){
-    st.textContent='Aggiornamento '+dt(pos.ticker)+'… ('+(upd+fail.length+1)+'/'+wt.length+')';
-    try{
-      const res=await fetchSinglePrice(pos.ticker, pos.isin);
-      S.positions=S.positions.map(p=>p.id===pos.id?{...p,currentPrice:res.price,priceCur:'EUR',priceOrigCur:res.rawCur,priceUpdatedAt:new Date().toISOString()}:p);
-      upd++;
-    }catch(e){fail.push(pos.ticker);}
-  }
+  st.textContent='Aggiornamento prezzi ('+wt.length+' strumenti)…';
+  // Fetch parallelo per velocizzare
+  const results=await Promise.allSettled(wt.map(pos=>fetchSinglePrice(pos.ticker, pos.isin).then(res=>({pos,res})).catch(e=>({pos,err:e}))));
+  results.forEach(function(r){
+    if(r.status==='fulfilled'&&r.value&&r.value.res){
+      const pos=r.value.pos,res=r.value.res;
+      try{
+        S.positions=S.positions.map(p=>p.id===pos.id?{...p,currentPrice:res.price,priceCur:'EUR',priceOrigCur:res.rawCur,priceUpdatedAt:new Date().toISOString()}:p);
+        upd++;
+      }catch(e){fail.push(pos.ticker);}
+    } else if(r.status==='fulfilled'&&r.value&&r.value.err){
+      fail.push(r.value.pos.ticker);
+    } else if(r.status==='rejected'){
+      fail.push('?');
+    }
+  });
+  // dummy for loop removed
   saveS();
   try{
     // Mostra sezioni dati storici se PC ha dati (anche stale)
