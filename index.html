@@ -1970,9 +1970,8 @@ async function fetchViaWorker(ticker, range) {
 }
 
 async function fetchYChart(ticker,range,isin){
-  // Usa ticker broker da ISIN se disponibile
-  var rawTicker=getTickerForBroker?getTickerForBroker(isin||'',ticker):ticker;
-  const yticker=typeof yTicker!=='undefined'?yTicker(rawTicker):rawTicker;
+  // USA SEMPRE IL TICKER ORIGINALE della posizione
+  const yticker=typeof yTicker!=='undefined'?yTicker(ticker):ticker;
   // 1. Cloudflare Worker (fonte primaria se configurato)
   if(WORKER_URL){
     try{
