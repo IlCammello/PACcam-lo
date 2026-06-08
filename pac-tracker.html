@@ -1835,68 +1835,121 @@ var IDEAL_STATE = {
 
 // Categorie asset con colori
 var ASSET_CATS = [
-  {k:'glob', label:'Azionario Globale',    color:'#4a90d9', ex:'MSCI World / ACWI'},
-  {k:'em',   label:'Mercati Emergenti',    color:'#e8b84b', ex:'MSCI Emerging Markets'},
-  {k:'eu',   label:'Azionario Europa',     color:'#7c6fcd', ex:'Stoxx Europe 600'},
-  {k:'bond', label:'Obbligazionario',      color:'#4ade9e', ex:'Gov. Bond EUR'},
-  {k:'gold', label:'Oro / Materie Prime',  color:'#fbbf24', ex:'Gold ETC'},
-  {k:'cash', label:'Monetario / Cash',     color:'#94a3b8', ex:'Overnight Rate Swap'},
-  {k:'btc',  label:'Bitcoin / Crypto',     color:'#f97316', ex:'Bitcoin ETP'},
+  {k:'glob',   label:'Az. Paesi Sviluppati', color:'#4a90d9', ex:'MSCI World'},
+  {k:'em',     label:'Mercati Emergenti',    color:'#e8b84b', ex:'MSCI Emerging Markets'},
+  {k:'eu',     label:'Azionario Europa',     color:'#7c6fcd', ex:'Stoxx Europe 600'},
+  {k:'bondlt', label:'Bond Lungo Termine',   color:'#4ade9e', ex:'Gov. Bond EUR 10-15Y'},
+  {k:'bondct', label:'Bond Breve Termine',   color:'#86efac', ex:'Gov. Bond EUR 1-3Y'},
+  {k:'gold',   label:'Oro',                  color:'#fbbf24', ex:'Gold ETC'},
+  {k:'comm',   label:'Materie Prime',        color:'#fb923c', ex:'Commodity ETF'},
+  {k:'cash',   label:'Liquidità / Monetario',color:'#94a3b8', ex:'Overnight Rate Swap'},
+  {k:'btc',    label:'Bitcoin / Crypto',     color:'#f97316', ex:'Bitcoin ETP'},
 ];
 
-// Portafogli famosi
+// Portafogli famosi e profili predefiniti
 var IDEAL_TEMPLATES = [
-  {id:'suggest',  icon:'🎯', name:'Suggerito',       desc:'Dal tuo profilo',
-   w:{glob:60,em:15,eu:0,bond:15,gold:10,cash:0,btc:0}},
-  {id:'gb',       icon:'🦋', name:'Golden Butterfly', desc:'Tyler Portfolio',
-   w:{glob:40,em:0,eu:0,bond:40,gold:20,cash:0,btc:0}},
-  {id:'as',       icon:'🌦️', name:'All Seasons',     desc:'Ray Dalio',
-   w:{glob:30,em:0,eu:0,bond:55,gold:7,cash:8,btc:0}},
-  {id:'pp',       icon:'🔒', name:'Permanent',        desc:'Harry Browne',
-   w:{glob:25,em:0,eu:0,bond:25,gold:25,cash:25,btc:0}},
-  {id:'3f',       icon:'📊', name:'Three-Fund',       desc:'Bogleheads',
-   w:{glob:60,em:20,eu:0,bond:20,gold:0,cash:0,btc:0}},
-  {id:'custom',   icon:'✏️', name:'Personalizzato',   desc:'Imposta tu i pesi',
-   w:null},
+  {id:'suggest', icon:'🎯', name:'Dal tuo profilo', desc:'Basato sulla tua scelta', w:null},
+  // Portafogli famosi
+  {id:'gb', icon:'🦋', name:'Golden Butterfly', desc:'Tyler Portfolio',
+   w:{glob:20,em:0,eu:20,bondlt:20,bondct:20,gold:20,comm:0,cash:0,btc:0}},
+  {id:'as', icon:'🌦️', name:'All Seasons', desc:'Ray Dalio',
+   w:{glob:30,em:0,eu:0,bondlt:40,bondct:15,gold:7,comm:8,cash:0,btc:0}},
+  {id:'pp', icon:'🔒', name:'Permanent', desc:'Harry Browne',
+   w:{glob:25,em:0,eu:0,bondlt:25,bondct:0,gold:25,comm:0,cash:25,btc:0}},
+  {id:'3f', icon:'📊', name:'Three-Fund', desc:'Bogleheads',
+   w:{glob:55,em:8,eu:0,bondlt:27,bondct:0,gold:10,comm:0,cash:0,btc:0}},
+  {id:'custom', icon:'✏️', name:'Personalizzato', desc:'Imposta tu i pesi', w:null},
 ];
 
-// Profili in base al punteggio
+// Profili predefiniti (l'utente sceglie consapevolmente)
 var IDEAL_PROFILES = [
-  {id:'cons',  name:'Conservativo',  score:[3,6],  color:'#4ade9e',
-   desc:'Priorità alla protezione del capitale. Volatilità bassa, rendimenti moderati.',
-   w:{glob:20,em:5,eu:0,bond:55,gold:15,cash:5,btc:0}},
-  {id:'mod',   name:'Moderato',      score:[7,9],  color:'#4a90d9',
-   desc:'Bilanciamento tra crescita e stabilità. Adatto a chi vuole crescere senza eccessi.',
-   w:{glob:40,em:10,eu:0,bond:35,gold:10,cash:5,btc:0}},
-  {id:'bil',   name:'Bilanciato',    score:[10,12],color:'#7c6fcd',
-   desc:'Crescita con un cuscino difensivo. Il profilo più diffuso tra gli investitori di lungo periodo.',
-   w:{glob:55,em:15,eu:0,bond:20,gold:10,cash:0,btc:0}},
-  {id:'grow',  name:'Crescita',      score:[13,14],color:'#e8b84b',
-   desc:'Orientato alla massimizzazione del rendimento nel lungo periodo. Alta tolleranza alla volatilità.',
-   w:{glob:70,em:20,eu:0,bond:5,gold:5,cash:0,btc:0}},
-  {id:'aggr',  name:'Aggressivo',    score:[15,15],color:'#f97316',
-   desc:'Massima esposizione azionaria. Solo per chi ha un orizzonte lunghissimo e nervi saldi.',
-   w:{glob:75,em:20,eu:0,bond:0,gold:5,cash:0,btc:0}},
+  {id:'def',  name:'Difensivo',  icon:'🛡️', color:'#4ade9e',
+   desc:'Priorità alla protezione del capitale. Volatilità contenuta, buona stabilità in tutti gli scenari economici.',
+   detail:'Ideale per chi ha un orizzonte breve o non vuole perdite significative.',
+   w:{glob:15,em:0,eu:0,bondlt:35,bondct:30,gold:15,cash:5,comm:0,btc:0}},
+  {id:'mod',  name:'Moderato',   icon:'⚖️', color:'#4a90d9',
+   desc:'Bilanciamento tra crescita e stabilità. Esposizione azionaria contenuta con solida componente difensiva.',
+   detail:'Per chi vuole crescere nel tempo senza eccessi di volatilità.',
+   w:{glob:30,em:5,eu:0,bondlt:25,bondct:20,gold:15,cash:5,comm:0,btc:0}},
+  {id:'bil',  name:'Bilanciato', icon:'📊', color:'#7c6fcd',
+   desc:'Il classico 60/40 con una quota emergenti. Riferimento storico per chi vuole crescita con ammortizzatore obbligazionario.',
+   detail:'Rendimento atteso medio, volatilità media. Il benchmark più usato.',
+   w:{glob:53,em:7,eu:0,bondlt:40,bondct:0,gold:0,cash:0,comm:0,btc:0}},
+  {id:'grow', name:'Crescita',   icon:'📈', color:'#e8b84b',
+   desc:'Orientato alla crescita di lungo periodo. Quota azionaria alta con piccola componente difensiva in oro.',
+   detail:'Per chi ha un orizzonte 10+ anni e tollera la volatilità.',
+   w:{glob:55,em:15,eu:0,bondlt:10,bondct:5,gold:10,cash:5,comm:0,btc:0}},
+  {id:'dyn',  name:'Dinamico',   icon:'🚀', color:'#f97316',
+   desc:'Massima crescita nel lungo periodo. Esposizione azionaria elevata, componente difensiva minima.',
+   detail:'Solo per chi ha 15+ anni di orizzonte e nervi saldi durante i drawdown.',
+   w:{glob:65,em:15,eu:0,bondlt:5,bondct:0,gold:10,cash:5,comm:0,btc:0}},
 ];
 
-function iSelectQ(q, score, el){
-  IDEAL_STATE['q'+q] = score;
+function iSelectQ(q, val, el){
+  IDEAL_STATE['q'+q] = val;
   el.closest('.quiz-opts').querySelectorAll('.quiz-opt').forEach(function(b){b.classList.remove('selected');});
   el.classList.add('selected');
-  var allAnswered = IDEAL_STATE.q1!==null && IDEAL_STATE.q2!==null && IDEAL_STATE.q3!==null;
-  var btn = document.getElementById('ideal-quiz-btn');
-  if(btn){btn.disabled=!allAnswered; btn.style.opacity=allAnswered?'1':'0.5';}
+  if(q===1){
+    // Aggiorna orizzonte e mostra profili
+    var hz=document.getElementById('ideal-horizon');
+    if(hz)hz.value=val;
+    IDEAL_STATE.horizon=val;
+    iRenderProfileOpts();
+  }
 }
 
-function iCalcProfile(){
-  var score = (IDEAL_STATE.q1||0) + (IDEAL_STATE.q2||0) + (IDEAL_STATE.q3||0);
-  var profile = IDEAL_PROFILES.find(function(p){return score>=p.score[0]&&score<=p.score[1];}) || IDEAL_PROFILES[2];
+function iRenderProfileOpts(){
+  var el=document.getElementById('ideal-profile-opts');if(!el)return;
+  var rows=IDEAL_PROFILES.map(function(p){
+    var sel=IDEAL_STATE.profile&&IDEAL_STATE.profile.id===p.id;
+    var ws=iWeightSummary(p.w);
+    var div=document.createElement('div');
+    div.className='quiz-opt'+(sel?' selected':'');
+    div.setAttribute('data-pid',p.id);
+    div.style.cssText='display:flex;align-items:flex-start;gap:12px';
+    div.innerHTML=
+      '<span style="font-size:24px;flex-shrink:0">'+p.icon+'</span>'+
+      '<div>'+
+        '<div style="font-weight:700;color:#e8e9ea;margin-bottom:2px">'+p.name+'</div>'+
+        '<div style="font-size:11px;color:#7a90a8">'+p.desc+'</div>'+
+        '<div style="font-size:10px;color:#4a5568;margin-top:4px">'+ws+'</div>'+
+      '</div>';
+    div.addEventListener('click',function(){iSelectProfileOpt(div,p.id);});
+    return div;
+  });
+  el.innerHTML='';
+  rows.forEach(function(r){el.appendChild(r);});
+}
+
+function iWeightSummary(w){
+  var parts=[];
+  if(w.glob||w.em){parts.push('Az. '+(((w.glob||0)+(w.em||0)))+'%');}
+  if(w.bondlt||w.bondct){parts.push('Bond '+(((w.bondlt||0)+(w.bondct||0)))+'%');}
+  if(w.gold){parts.push('Oro '+w.gold+'%');}
+  if(w.cash){parts.push('Liquidità '+w.cash+'%');}
+  if(w.comm){parts.push('Commodity '+w.comm+'%');}
+  return parts.join(' · ');
+}
+
+function iSelectProfileOpt(el, id){
+  var profile=IDEAL_PROFILES.find(function(p){return p.id===id;});
+  if(!profile)return;
+  IDEAL_STATE.profile=profile;
+  document.getElementById('ideal-profile-opts').querySelectorAll('.quiz-opt').forEach(function(b){b.classList.remove('selected');});
+  el.classList.add('selected');
+  // Vai direttamente all'allocazione
+  setTimeout(function(){iSelectProfile(id);},300);
+}
+
+function iSelectProfile(id){
+  var profile = IDEAL_PROFILES.find(function(p){return p.id===id;}) || IDEAL_PROFILES[2];
   IDEAL_STATE.profile = profile;
-  // Imposta pesi suggeriti
   IDEAL_STATE.weights = Object.assign({},profile.w);
   IDEAL_STATE.template = 'suggest';
-  // Aggiorna template "suggerito"
   IDEAL_TEMPLATES[0].w = Object.assign({},profile.w);
+  // Salva orizzonte
+  var sel = document.getElementById('ideal-horizon');
+  if(sel) IDEAL_STATE.horizon = parseInt(sel.value)||20;
   iGoStep('alloc');
 }
 
@@ -1999,15 +2052,17 @@ function iUpdateTotal(){
 }
 
 // ─── PROIEZIONI BOOTSTRAP ─────────────────────────────────────────────────────
-// Rendimenti storici annui per categoria (stime conservative da dati storici)
+// Rendimenti storici annui per categoria (dati storici 30 anni, in EUR)
 var HIST_RETURNS = {
-  glob: {mean:0.085, std:0.16},  // MSCI World
-  em:   {mean:0.075, std:0.22},  // Emerging Markets
-  eu:   {mean:0.070, std:0.17},  // Stoxx Europe
-  bond: {mean:0.030, std:0.07},  // Obbligazionario EUR
-  gold: {mean:0.055, std:0.15},  // Oro
-  cash: {mean:0.020, std:0.01},  // Monetario
-  btc:  {mean:0.150, std:0.80},  // Bitcoin (molto speculativo)
+  glob:   {mean:0.085, std:0.155}, // MSCI World sviluppati
+  em:     {mean:0.070, std:0.220}, // MSCI Emerging Markets
+  eu:     {mean:0.070, std:0.175}, // Stoxx Europe 600
+  bondlt: {mean:0.025, std:0.090}, // Bond gov. lungo termine EUR
+  bondct: {mean:0.020, std:0.030}, // Bond gov. breve termine EUR
+  gold:   {mean:0.055, std:0.150}, // Oro
+  comm:   {mean:0.030, std:0.200}, // Materie prime
+  cash:   {mean:0.018, std:0.008}, // Monetario / overnight
+  btc:    {mean:0.150, std:0.800}, // Bitcoin (altamente speculativo)
 };
 
 function iCalcProj(){
@@ -5301,46 +5356,31 @@ function switchSettingsTab(tab){
     <button class="ideal-step-btn" data-istep="proj" onclick="iGoStep('proj')" disabled>3 · Proiezioni</button>
   </div>
 
-  <!-- Step 1: Questionario -->
+  <!-- Step 1: Orizzonte + Scelta profilo -->
   <div id="ideal-quiz">
+    <!-- Orizzonte temporale -->
     <div class="quiz-card">
       <div class="quiz-q">⏱️ Qual è il tuo orizzonte temporale?</div>
-      <div class="quiz-sub">Per quanti anni pensi di mantenere questo PAC?</div>
+      <div class="quiz-sub">Per quanti anni pensi di mantenere questo PAC senza toccare il capitale?</div>
       <div class="quiz-opts" id="q1-opts">
-        <button class="quiz-opt" onclick="iSelectQ(1,1,this)"><span class="quiz-opt-label">A</span>3 anni — Breve termine</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,2,this)"><span class="quiz-opt-label">B</span>5 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,3,this)"><span class="quiz-opt-label">C</span>10 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,4,this)"><span class="quiz-opt-label">D</span>20 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,5,this)"><span class="quiz-opt-label">E</span>30 anni — Lunghissimo termine</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,3,this)"><span class="quiz-opt-label">A</span>3 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,5,this)"><span class="quiz-opt-label">B</span>5 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,10,this)"><span class="quiz-opt-label">C</span>10 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,20,this)"><span class="quiz-opt-label">D</span>20 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,30,this)"><span class="quiz-opt-label">E</span>30 anni</button>
       </div>
     </div>
 
-    <div class="quiz-card">
-      <div class="quiz-q">📉 È il 2008. Il tuo portafoglio ha perso il 50% in 6 mesi. Cosa fai?</div>
-      <div class="quiz-sub">Sii onesto — la reazione istintiva conta più di quella razionale.</div>
-      <div class="quiz-opts" id="q2-opts">
-        <button class="quiz-opt" onclick="iSelectQ(2,1,this)"><span class="quiz-opt-label">A</span>Vendo tutto. Non riesco a sopportare queste perdite.</button>
-        <button class="quiz-opt" onclick="iSelectQ(2,2,this)"><span class="quiz-opt-label">B</span>Vendo una parte per limitare i danni.</button>
-        <button class="quiz-opt" onclick="iSelectQ(2,3,this)"><span class="quiz-opt-label">C</span>Non faccio nulla. Aspetto che passi.</button>
-        <button class="quiz-opt" onclick="iSelectQ(2,4,this)"><span class="quiz-opt-label">D</span>Continuo il PAC normalmente.</button>
-        <button class="quiz-opt" onclick="iSelectQ(2,5,this)"><span class="quiz-opt-label">E</span>Aumento i versamenti. È un'occasione di acquisto.</button>
+    <!-- Scelta profilo -->
+    <div class="quiz-card" id="ideal-profile-select-card">
+      <div class="quiz-q">📊 Scegli il tuo profilo di rischio</div>
+      <div class="quiz-sub">Ogni profilo ha un'allocazione predefinita. Potrai personalizzarla nel passo successivo.</div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="ideal-profile-opts">
+        <!-- renderizzato da iRenderProfileOpts() -->
       </div>
     </div>
 
-    <div class="quiz-card">
-      <div class="quiz-q">📅 A quanti anni dalla fine del tuo orizzonte sei?</div>
-      <div class="quiz-sub">Chi è vicino alla fine è più esposto al rischio di sequenza — un crash prima del ritiro può essere devastante.</div>
-      <div class="quiz-opts" id="q3-opts">
-        <button class="quiz-opt" onclick="iSelectQ(3,1,this)"><span class="quiz-opt-label">A</span>Meno di 2 anni — Sto per utilizzare il capitale</button>
-        <button class="quiz-opt" onclick="iSelectQ(3,3,this)"><span class="quiz-opt-label">B</span>2–5 anni — Fase di avvicinamento</button>
-        <button class="quiz-opt" onclick="iSelectQ(3,5,this)"><span class="quiz-opt-label">C</span>Più di 5 anni — Ho ancora molto tempo</button>
-      </div>
-    </div>
-
-    <button id="ideal-quiz-btn" onclick="iCalcProfile()" disabled
-      style="width:100%;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer;opacity:.5;transition:all .2s">
-      Calcola il mio profilo →
-    </button>
+    <input type="hidden" id="ideal-horizon" value="20">
   </div>
 
   <!-- Step 2: Allocazione -->
