@@ -794,7 +794,15 @@ function updateBottomNav(tab){
     <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Personalizza i pesi</div>
     <div id="ideal-sliders"></div>
     <div id="ideal-alloc-total" class="alloc-total"></div>
-    <button onclick="iGoStep('proj')" style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
+    <!-- Salvataggio portafoglio -->
+    <div style="margin-top:16px;background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em">Portafogli salvati</div>
+        <button onclick="iShowSaveDialog()" style="font-size:11px;padding:4px 12px;background:rgba(232,184,75,0.1);border:1px solid #e8b84b;color:#e8b84b;border-radius:6px;cursor:pointer;font-weight:700">+ Salva questo</button>
+      </div>
+      <div id="ideal-saved-list"></div>
+    </div>
+    <button onclick="iGoStep('proj')" style="width:100%;margin-top:12px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
   </div>
 
   <!-- Step 3: Proiezioni -->
@@ -2000,6 +2008,7 @@ function iGoStep(step){
 }
 
 function iRenderAlloc(){
+  setTimeout(iRenderSavedPortfolios, 100);
   // Profile card
   var p=IDEAL_STATE.profile||IDEAL_PROFILES[2];
   var pc=document.getElementById('ideal-profile-card');
@@ -2535,13 +2544,16 @@ var ASSET_CLASS_MAP={
 };
 
 function getRealAllocation(){
-  var total=S.positions.reduce(function(s,p){return s+(p.currentVal||0);},0);
+  // Usa computeAll() per avere currentVal calcolato correttamente
+  var positions=typeof computeAll==='function'?computeAll():S.positions;
+  var total=positions.reduce(function(s,p){return s+(p.currentVal||0);},0);
   if(total<=0)return null;
   var alloc={};ASSET_CATS.forEach(function(c){alloc[c.k]=0;});
-  S.positions.forEach(function(p){
+  positions.forEach(function(p){
     if(!p.currentVal||p.currentVal<=0)return;
     var mapper=ASSET_CLASS_MAP[p.assetClass||'Azionario']||function(){return 'glob';};
-    alloc[mapper(p)]=(alloc[mapper(p)]||0)+(p.currentVal/total*100);
+    var cat=mapper(p);
+    alloc[cat]=(alloc[cat]||0)+(p.currentVal/total*100);
   });
   return alloc;
 }
@@ -2560,7 +2572,8 @@ function renderPortCompare(){
   if(!real){
     section.style.display='block';
     body.innerHTML='<div style="color:#7a90a8;font-size:13px;padding:16px;text-align:center">'+
-      'Aggiorna i prezzi per vedere il confronto (clicca <strong style="color:#e8b84b">Aggiorna Prezzi</strong>).</div>';
+      'Nessuna posizione con valore disponibile. '+
+      'Vai in <strong style="color:#e8b84b">Portafoglio</strong> e aggiungi le tue posizioni.</div>';
     return;
   }
   section.style.display='block';
@@ -2579,6 +2592,84 @@ function renderPortCompare(){
     '<div><span style="display:inline-block;width:12px;height:4px;background:#e8b84b;border-radius:2px;opacity:0.9;vertical-align:middle;margin-right:4px"></span>Reale</div>'+
     '<div><span style="display:inline-block;width:12px;height:2px;background:#e8b84b;border-radius:2px;opacity:0.35;vertical-align:middle;margin-right:4px"></span>Ideale</div></div>'+
     rows+'<div style="font-size:10px;color:#4a5568;margin-top:6px">Profilo: <span style="color:#e8b84b">'+IDEAL_STATE.profile.icon+' '+IDEAL_STATE.profile.name+'</span></div>';
+}
+
+
+// ─── SALVATAGGIO PORTAFOGLIO IDEALE ─────────────────────────────────────────
+function saveIdealPortfolio(name){
+  if(!IDEAL_STATE.profile||!IDEAL_STATE.weights)return;
+  var portfolios=JSON.parse(localStorage.getItem('pac_ideal_saved')||'[]');
+  var entry={
+    id:'ip'+Date.now(),
+    name:name||('Portafoglio '+new Date().toLocaleDateString('it-IT')),
+    ts:Date.now(),
+    profile:IDEAL_STATE.profile.id,
+    weights:Object.assign({},IDEAL_STATE.weights),
+    horizon:IDEAL_STATE.horizon,
+    monthlyAmount:IDEAL_STATE.monthlyAmount,
+    cadenza:IDEAL_STATE.cadenza
+  };
+  portfolios.push(entry);
+  localStorage.setItem('pac_ideal_saved',JSON.stringify(portfolios));
+  return entry;
+}
+
+function loadSavedPortfolios(){
+  return JSON.parse(localStorage.getItem('pac_ideal_saved')||'[]');
+}
+
+function deleteSavedPortfolio(id){
+  var portfolios=loadSavedPortfolios().filter(function(p){return p.id!==id;});
+  localStorage.setItem('pac_ideal_saved',JSON.stringify(portfolios));
+}
+
+function applySavedPortfolio(entry){
+  var profile=IDEAL_PROFILES.find(function(p){return p.id===entry.profile;})||IDEAL_PROFILES[2];
+  IDEAL_STATE.profile=profile;
+  IDEAL_STATE.weights=Object.assign({},entry.weights);
+  IDEAL_STATE.horizon=entry.horizon||20;
+  IDEAL_STATE.monthlyAmount=entry.monthlyAmount||200;
+  IDEAL_STATE.cadenza=entry.cadenza||1;
+  IDEAL_STATE.monthlyEquiv=IDEAL_STATE.monthlyAmount/(IDEAL_STATE.cadenza||1);
+  IDEAL_TEMPLATES[0].w=Object.assign({},entry.weights);
+  saveIdealState();
+  iGoStep('alloc');
+  toast('Portafoglio "'+entry.name+'" caricato','ok');
+}
+
+function iShowSaveDialog(){
+  var name=prompt('Nome del portafoglio ideale:',IDEAL_STATE.profile?IDEAL_STATE.profile.name+' '+new Date().getFullYear():'Il mio PAC');
+  if(name===null)return; // annullato
+  var entry=saveIdealPortfolio(name);
+  if(entry)toast('Portafoglio "'+name+'" salvato','ok');
+  iRenderSavedPortfolios();
+}
+
+function iRenderSavedPortfolios(){
+  var el=document.getElementById('ideal-saved-list');if(!el)return;
+  el.onclick=function(e){
+    var del=e.target.closest('[data-del]');
+    if(del){deleteSavedPortfolio(del.getAttribute('data-del'));iRenderSavedPortfolios();return;}
+    var load=e.target.closest('[data-pid]');
+    if(load){
+      var pid=load.getAttribute('data-pid');
+      var entry=loadSavedPortfolios().find(function(p){return p.id===pid;});
+      if(entry)applySavedPortfolio(entry);
+    }
+  };
+  var portfolios=loadSavedPortfolios();
+  if(!portfolios.length){el.innerHTML='<div style="color:#4a5568;font-size:12px;text-align:center;padding:8px">Nessun portafoglio salvato</div>';return;}
+  el.innerHTML=portfolios.map(function(p){
+    var d=new Date(p.ts).toLocaleDateString('it-IT');
+    var profile=IDEAL_PROFILES.find(function(x){return x.id===p.profile;})||IDEAL_PROFILES[2];
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:#0f1520;border-radius:8px;margin-bottom:6px">'+
+      '<div style="flex:1;cursor:pointer" onclick="applySavedPortfolio('+JSON.stringify(p).replace(/'/g,"\'")+')">'+
+        '<div style="font-size:13px;font-weight:700;color:#e8e9ea">'+p.name+'</div>'+
+        '<div style="font-size:10px;color:#4a5568">'+profile.icon+' '+profile.name+' · '+d+'</div>'+
+      '</div>'+
+      '<button data-del="'+p.id+'" style="background:none;border:none;color:#f87171;font-size:16px;cursor:pointer;padding:4px">🗑</button>'+
+    '</div>';
+  }).join('');
 }
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
