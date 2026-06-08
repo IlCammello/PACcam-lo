@@ -735,89 +735,102 @@ function updateBottomNav(tab){
     <div id="pac-report"></div>
   </div>
 
-  <div class="tab-content" id="tab-simulator">
-    <div class="section-header">
-      <div>
-        <h2 class="section-title">Simulatore PAC</h2>
-        <div class="section-sub">Proiezione crescita con reinvestimento automatico (ETF accumulazione vs distributivo)</div>
-      </div>
-    </div>
-    <div class="info-box tip" style="margin-bottom:20px">
-      <strong>Come funziona il reinvestimento automatico:</strong>
-      Un ETF ad accumulazione reinveste i dividendi <em>prima</em> di qualsiasi tassazione, 
-      generando interesse composto sull'intero importo lordo. Un fondo distributivo equivalente 
-      distribuirebbe i dividendi, su cui pagheresti il 26% di tassa (aliquota italiana sulle rendite 
-      finanziarie), reinvestendo solo il 74%. Nel tempo, questa differenza si accumula in modo 
-      significativo.
-    </div>
-    <!-- Inputs -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px">
-      <div class="form-grid" style="align-items:end">
-        <div class="form-group">
-          <label>Versamento mensile (€)</label>
-          <input id="sim-monthly" type="text" inputmode="decimal" placeholder="es. 500">
-          <div id="sim-monthly-hint" style="font-size:10px;color:var(--text-muted);margin-top:3px"></div>
-        </div>
-        <div class="form-group">
-          <label>Rendimento annuo atteso (%)</label>
-          <div style="display:flex;gap:6px;margin-bottom:6px">
-            <button class="btn btn-ghost btn-sm" onclick="setSimR(5)">5%</button>
-            <button class="btn btn-ghost btn-sm" onclick="setSimR(7)" id="sim-r-7">7%</button>
-            <button class="btn btn-ghost btn-sm" onclick="setSimR(9)">9%</button>
-            <button class="btn btn-ghost btn-sm" onclick="setSimR(12)">12%</button>
-          </div>
-          <input id="sim-r" type="text" inputmode="decimal" value="7">
-        </div>
-        <div class="form-group">
-          <label>Dividend yield ipotetico distributivo (%)</label>
-          <input id="sim-yield" type="text" inputmode="decimal" value="2">
-          <div style="font-size:10px;color:var(--text-muted);margin-top:3px">Dividend yield del fondo equivalente distributivo (tipico: 1.5–3%)</div>
-        </div>
-        <div class="form-group">
-          <label>Durata proiezione: <span id="sim-years-label">20 anni</span></label>
-          <input id="sim-years" type="range" min="1" max="40" value="20" oninput="document.getElementById('sim-years-label').textContent=this.value+' ann'+(+this.value===1?'o':'i')" style="padding:6px 0;background:none;border:none;accent-color:var(--accent)">
-        </div>
-        <div class="form-group full" style="margin-top:4px">
-          <button class="btn btn-primary" onclick="rSim()" style="width:180px">Calcola Proiezione</button>
-        </div>
-      </div>
-    </div>
-    <!-- KPIs -->
-    <div id="sim-kpis"></div>
-    <!-- Chart -->
-    <div id="sim-chart-wrap" style="display:none;margin-bottom:24px">
-      <div class="chart-card">
-        <div class="chart-title">Crescita Proiettata del Portafoglio</div>
-        <div style="position:relative;height:320px"><canvas id="ch-sim"></canvas></div>
-      </div>
-    </div>
-    <!-- Table -->
-    <div id="sim-table"></div>
-    <!-- Shares breakdown section -->
-    <div id="sim-shares-wrap" style="display:none;margin-top:28px">
-      <div class="perf-block-title">Quote Accumulate per ETF</div>
-      <div class="info-box tip" style="margin-bottom:16px;font-size:11px">
-        <strong>🔑 Come leggere questa tabella:</strong>
-        Le quote da reinvestimento non sono quote reali aggiuntive nel tuo conto — 
-        per un ETF ad accumulazione il NAV per quota cresce invece di distribuire dividendi. 
-        Rappresentano le quote <em>equivalenti</em> che potresti comprare con il valore extra 
-        generato dal mancato pagamento delle tasse sui dividendi durante l'accumulo.
-      </div>
-      <div class="table-wrapper" style="overflow-x:auto;margin-bottom:16px">
-        <div id="sim-shares-table"></div>
-      </div>
-      <div class="charts-grid" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr))">
-        <div class="chart-card">
-          <div class="chart-title">Composizione Quote per ETF</div>
-          <div style="position:relative;height:280px"><canvas id="ch-sim-shares"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Valore Quote per ETF (proiettato)</div>
-          <div style="position:relative;height:280px"><canvas id="ch-sim-values"></canvas></div>
-        </div>
-      </div>
-    </div>
+  <div id="tab-simulator" class="tab-content">
+  <!-- Stepper -->
+  <div class="ideal-stepper">
+    <button class="ideal-step-btn active" data-istep="quiz" onclick="iGoStep('quiz')">1 · Questionario</button>
+    <button class="ideal-step-btn" data-istep="alloc" onclick="iGoStep('alloc')" disabled>2 · Allocazione</button>
+    <button class="ideal-step-btn" data-istep="proj" onclick="iGoStep('proj')" disabled>3 · Proiezioni</button>
+  </div>
 
+  <!-- Step 1: Orizzonte + Scelta profilo -->
+  <div id="ideal-quiz">
+    <div class="quiz-card">
+      <div class="quiz-q">⏱️ Qual è il tuo orizzonte temporale?</div>
+      <div class="quiz-sub">Per quanti anni pensi di mantenere questo PAC senza toccare il capitale?</div>
+      <div class="quiz-opts" id="q1-opts">
+        <button class="quiz-opt" onclick="iSelectQ(1,3,this)"><span class="quiz-opt-label">A</span>3 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,5,this)"><span class="quiz-opt-label">B</span>5 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,10,this)"><span class="quiz-opt-label">C</span>10 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,20,this)"><span class="quiz-opt-label">D</span>20 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,30,this)"><span class="quiz-opt-label">E</span>30 anni</button>
+      </div>
+    </div>
+    <div class="quiz-card" id="ideal-profile-select-card">
+      <div class="quiz-q">📊 Scegli il tuo profilo di rischio</div>
+      <div class="quiz-sub">Ogni profilo ha un allocazione predefinita. Potrai personalizzarla nel passo successivo.</div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="ideal-profile-opts"></div>
+    </div>
+    <div class="quiz-card" id="ideal-amount-card" style="display:none">
+      <div class="quiz-q">💰 Quanto pensi di investire periodicamente?</div>
+      <div class="quiz-sub">Indica importo e cadenza dei tuoi versamenti PAC.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:11px;color:#7a90a8;display:block;margin-bottom:6px">Importo (€)</label>
+          <input type="number" id="ideal-amount" value="200" min="10" step="50" style="width:100%;padding:10px 12px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:16px;font-weight:700;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label style="font-size:11px;color:#7a90a8;display:block;margin-bottom:6px">Cadenza</label>
+          <div style="display:flex;flex-direction:column;gap:6px" id="cadenza-opts">
+            <button class="quiz-opt" onclick="iSelectCadenza(1,this)" style="padding:8px 12px"><span class="quiz-opt-label">A</span>Mensile</button>
+            <button class="quiz-opt" onclick="iSelectCadenza(2,this)" style="padding:8px 12px"><span class="quiz-opt-label">B</span>Bimestrale</button>
+            <button class="quiz-opt" onclick="iSelectCadenza(3,this)" style="padding:8px 12px"><span class="quiz-opt-label">C</span>Trimestrale</button>
+            <button class="quiz-opt" onclick="iSelectCadenza(6,this)" style="padding:8px 12px"><span class="quiz-opt-label">D</span>Semestrale</button>
+          </div>
+        </div>
+      </div>
+      <button onclick="iSelectProfile(IDEAL_STATE.profile&&IDEAL_STATE.profile.id)" style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">
+        Vedi la mia allocazione →
+      </button>
+    </div>
+    <input type="hidden" id="ideal-horizon" value="20">
+  </div>
+
+  <!-- Step 2: Allocazione -->
+  <div id="ideal-alloc" style="display:none">
+    <div id="ideal-profile-card"></div>
+    <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Portafogli di riferimento</div>
+    <div class="tmpl-grid" id="ideal-templates"></div>
+    <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Personalizza i pesi</div>
+    <div id="ideal-sliders"></div>
+    <div id="ideal-alloc-total" class="alloc-total"></div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="iGoStep('proj')" style="flex:1;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:14px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
+      <button onclick="iGoCompare()" style="flex:1;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:14px;border-radius:12px;cursor:pointer">Confronta col reale 🔍</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Proiezioni -->
+  <div id="ideal-proj" style="display:none">
+    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#e8e9ea">Dati storici reali</div><div id="ideal-proxy-status" style="font-size:11px;color:#4a5568;margin-top:2px">Caricamento in corso…</div></div>
+    </div>
+    <div class="proj-input-row">
+      <div class="proj-input-group"><label>Versamento mensile (€)</label><input type="number" id="proj-monthly" value="200" min="10" oninput="iCalcProj()"></div>
+      <div class="proj-input-group"><label>Anni di investimento</label><input type="number" id="proj-years" value="20" min="1" max="40" oninput="iCalcProj()"></div>
+    </div>
+    <div id="ideal-backtest-wrap" style="display:none;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📊 Backtest storico</div>
+      <div style="height:160px;position:relative"><canvas id="ideal-backtest-chart"></canvas></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🔮 Proiezioni future — Monte Carlo</div>
+    <div id="ideal-proj-chart-wrap" style="height:240px;position:relative;margin-bottom:20px">
+      <canvas id="ideal-proj-chart"></canvas>
+    </div>
+    <div style="background:#0f1520;border:1px solid #1e2d40;border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#e8e9ea;margin-bottom:10px">Come leggere il grafico</div>
+      <div style="font-size:11px;color:#7a90a8;line-height:1.8">
+        <div>🟡 <strong>Linea gialla</strong> — Scenario mediano: metà delle simulazioni è sopra, metà sotto.</div>
+        <div>🟢 <strong>Area verde</strong> — Scenario favorevole: 1 simulazione su 10 finisce qui.</div>
+        <div>🔴 <strong>Area rossa</strong> — Scenario sfavorevole: 1 simulazione su 10 finisce qui.</div>
+        <div>⚫ <strong>Linea tratteggiata</strong> — Capitale versato, senza rendimenti.</div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1e2d40;font-size:10px;color:#4a5568;line-height:1.5">
+        ⚠️ I rendimenti passati non predicono il futuro. Questo strumento è educativo, non consulenza finanziaria.
+      </div>
+    </div>
+    <div id="ideal-proj-table">  </div>
+</div>
 
 </main>
 
@@ -1354,6 +1367,7 @@ function getPortPeriodReturn(ticker){
 }
 
 function rport(){
+  setTimeout(renderPortCompare,200);
   setTimeout(renderPortCompare,200);
   const cp=computeAll();const tbody=document.getElementById('port-tbody');
   if(!cp.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">Nessuna posizione</div></div></td></tr>`;return;}
@@ -2095,17 +2109,9 @@ function iCalcProj(){
     if(status)status.textContent='Proiezioni su '+Math.round(realReturns.length/12)+' anni di dati reali';
   } else {
     var meanAnn=0,varAnn=0;
-    ASSET_CATS.forEach(function(c){
-      var wt=(w[c.k]||0)/100;
-      if(HIST_RETURNS[c.k]){meanAnn+=wt*HIST_RETURNS[c.k].mean;varAnn+=wt*wt*HIST_RETURNS[c.k].std*HIST_RETURNS[c.k].std;}
-    });
-    var meanMon=meanAnn/12,stdMon=Math.sqrt(varAnn)/Math.sqrt(12);
-    var results=[];
-    for(var i=0;i<1000;i++){
-      var val=0;
-      for(var m=0;m<months;m++){val=(val+monthly)*(1+meanMon+stdMon*iRandNorm());}
-      results.push(val);
-    }
+    ASSET_CATS.forEach(function(c){var wt=(w[c.k]||0)/100;if(HIST_RETURNS[c.k]){meanAnn+=wt*HIST_RETURNS[c.k].mean;varAnn+=wt*wt*HIST_RETURNS[c.k].std*HIST_RETURNS[c.k].std;}});
+    var meanMon=meanAnn/12,stdMon=Math.sqrt(varAnn)/Math.sqrt(12),results=[];
+    for(var i=0;i<1000;i++){var val=0;for(var m=0;m<months;m++){val=(val+monthly)*(1+meanMon+stdMon*iRandNorm());}results.push(val);}
     results.sort(function(a,b){return a-b;});
     iRenderProjChart(months,monthly,invested,results[100],results[250],results[500],results[750],results[900],null);
     iRenderProjTable(monthly,years,invested,results[100],results[250],results[500],results[750],results[900],0);
@@ -2164,6 +2170,22 @@ function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90, ba
           plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},tooltip:{mode:'index',intersect:false}},
           scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
             y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k':v;},maxTicksLimit:5},position:'right'}}}});
+    }
+  }
+  if(backtest&&backtest.length>0){
+    var btw=document.getElementById('ideal-backtest-wrap');if(btw)btw.style.display='block';
+    var btc=document.getElementById('ideal-backtest-chart');
+    if(btc){
+      if(window._iBtChart)window._iBtChart.destroy();
+      var st=Math.max(1,Math.floor(backtest.length/24)),bl=[],bv=[],bvi=[];
+      for(var bi=0;bi<backtest.length;bi+=st){bl.push(Math.round(bi/12)+'a');bv.push(Math.round(backtest[bi].val));bvi.push(Math.round(backtest[bi].inv));}
+      window._iBtChart=new Chart(btc,{type:'line',data:{labels:bl,datasets:[
+        {label:'Valore',data:bv,borderColor:backtest[backtest.length-1].val>backtest[backtest.length-1].inv?'#4ade9e':'#f87171',backgroundColor:backtest[backtest.length-1].val>backtest[backtest.length-1].inv?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
+        {label:'Versato',data:bvi,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}
+      ]},options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},tooltip:{mode:'index',intersect:false}},
+        scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
+          y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k':v;},maxTicksLimit:5},position:'right'}}}});
     }
   }
   if(window._iProjChart)window._iProjChart.destroy();
@@ -5691,125 +5713,6 @@ function switchSettingsTab(tab){
 </style>
 
 </body>
-</html<div id="tab-simulator" class="tab-content">
-  <!-- Stepper -->
-  <div class="ideal-stepper">
-    <button class="ideal-step-btn active" data-istep="quiz" onclick="iGoStep('quiz')">1 · Questionario</button>
-    <button class="ideal-step-btn" data-istep="alloc" onclick="iGoStep('alloc')" disabled>2 · Allocazione</button>
-    <button class="ideal-step-btn" data-istep="proj" onclick="iGoStep('proj')" disabled>3 · Proiezioni</button>
-  </div>
-
-  <!-- Step 1: Orizzonte + Scelta profilo -->
-  <div id="ideal-quiz">
-    <!-- Orizzonte temporale -->
-    <div class="quiz-card">
-      <div class="quiz-q">⏱️ Qual è il tuo orizzonte temporale?</div>
-      <div class="quiz-sub">Per quanti anni pensi di mantenere questo PAC senza toccare il capitale?</div>
-      <div class="quiz-opts" id="q1-opts">
-        <button class="quiz-opt" onclick="iSelectQ(1,3,this)"><span class="quiz-opt-label">A</span>3 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,5,this)"><span class="quiz-opt-label">B</span>5 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,10,this)"><span class="quiz-opt-label">C</span>10 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,20,this)"><span class="quiz-opt-label">D</span>20 anni</button>
-        <button class="quiz-opt" onclick="iSelectQ(1,30,this)"><span class="quiz-opt-label">E</span>30 anni</button>
-      </div>
-    </div>
-
-    <!-- Scelta profilo -->
-    <div class="quiz-card" id="ideal-profile-select-card">
-      <div class="quiz-q">📊 Scegli il tuo profilo di rischio</div>
-      <div class="quiz-sub">Ogni profilo ha un'allocazione predefinita. Potrai personalizzarla nel passo successivo.</div>
-      <div style="display:flex;flex-direction:column;gap:10px" id="ideal-profile-opts">
-        <!-- renderizzato da iRenderProfileOpts() -->
-      </div>
-    </div>
-
-    <div class="quiz-card" id="ideal-amount-card" style="display:none">
-      <div class="quiz-q">💰 Quanto pensi di investire periodicamente?</div>
-      <div class="quiz-sub">Indica importo e cadenza dei tuoi versamenti PAC.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
-        <div style="flex:1;min-width:120px">
-          <label style="font-size:11px;color:#7a90a8;display:block;margin-bottom:6px">Importo (€)</label>
-          <input type="number" id="ideal-amount" value="200" min="10" step="50" style="width:100%;padding:10px 12px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:16px;font-weight:700;box-sizing:border-box">
-        </div>
-        <div style="flex:1;min-width:140px">
-          <label style="font-size:11px;color:#7a90a8;display:block;margin-bottom:6px">Cadenza</label>
-          <div style="display:flex;flex-direction:column;gap:6px" id="cadenza-opts">
-            <button class="quiz-opt" onclick="iSelectCadenza(1,this)" style="padding:8px 12px"><span class="quiz-opt-label">A</span>Mensile</button>
-            <button class="quiz-opt" onclick="iSelectCadenza(2,this)" style="padding:8px 12px"><span class="quiz-opt-label">B</span>Bimestrale</button>
-            <button class="quiz-opt" onclick="iSelectCadenza(3,this)" style="padding:8px 12px"><span class="quiz-opt-label">C</span>Trimestrale</button>
-            <button class="quiz-opt" onclick="iSelectCadenza(6,this)" style="padding:8px 12px"><span class="quiz-opt-label">D</span>Semestrale</button>
-          </div>
-        </div>
-      </div>
-      <button onclick="iSelectProfile(IDEAL_STATE.profile&&IDEAL_STATE.profile.id)" style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">
-        Vedi la mia allocazione
-      </button>
-    </div>
-    <input type="hidden" id="ideal-horizon" value="20">
-  </div>
-
-  <!-- Step 2: Allocazione -->
-  <div id="ideal-alloc" style="display:none">
-    <div id="ideal-profile-card"></div>
-    <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Portafogli di riferimento</div>
-    <div class="tmpl-grid" id="ideal-templates"></div>
-    <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Personalizza i pesi</div>
-    <div id="ideal-sliders"></div>
-    <div id="ideal-alloc-total" class="alloc-total"></div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="iGoStep('proj')" style="flex:1;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:14px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
-      <button onclick="iGoCompare()" style="flex:1;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:14px;border-radius:12px;cursor:pointer">Confronta col reale 🔍</button>
-    </div>
-  </div>
-
-  <!-- Step 3: Proiezioni -->
-  <div id="ideal-proj" style="display:none">
-    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:160px">
-        <div style="font-size:13px;font-weight:700;color:#e8e9ea">Dati storici reali</div>
-        <div id="ideal-proxy-status" style="font-size:11px;color:#4a5568;margin-top:2px">Carica per simulazioni accurate</div>
-      </div>
-      <button id="ideal-load-proxy" onclick="loadProxyData()" style="padding:8px 16px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8b84b;font-weight:700;font-size:12px;cursor:pointer">
-        ↺ Carica (~20 anni)
-      </button>
-    </div>
-    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#e8e9ea">Dati storici reali</div><div id="ideal-proxy-status" style="font-size:11px;color:#4a5568;margin-top:2px">Caricamento in corso…</div></div>
-    </div>
-    <div class="proj-input-row">
-      <div class="proj-input-group"><label>Versamento mensile (€)</label><input type="number" id="proj-monthly" value="200" min="10" oninput="iCalcProj()"></div>
-      <div class="proj-input-group"><label>Anni di investimento</label><input type="number" id="proj-years" value="20" min="1" max="40" oninput="iCalcProj()"></div>
-    </div>
-    <div id="ideal-backtest-wrap" style="display:none;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Backtest storico</div>
-      <div style="height:160px;position:relative"><canvas id="ideal-backtest-chart"></canvas></div>
-    </div>
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Proiezioni future — Monte Carlo</div>
-    <div id="ideal-backtest-wrap" style="display:none;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Backtest storico</div>
-      <div style="height:160px;position:relative"><canvas id="ideal-backtest-chart"></canvas></div>
-    </div>
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Proiezioni future — Monte Carlo</div>
-    <div id="ideal-proj-chart-wrap" style="height:260px;position:relative;margin-bottom:20px">
-      <canvas id="ideal-proj-chart"></canvas>
-    </div>
-    <div style="background:#0f1520;border:1px solid #1e2d40;border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:#e8e9ea;margin-bottom:10px">Come leggere il grafico</div>
-      <div style="font-size:11px;color:#7a90a8;line-height:1.7">
-        <div>🟡 <strong>Linea gialla</strong> — Scenario mediano: metà delle simulazioni è sopra, metà sotto.</div>
-        <div>🟢 <strong>Area verde</strong> — Scenario favorevole: 1 simulazione su 10 finisce qui.</div>
-        <div>🔴 <strong>Area rossa</strong> — Scenario sfavorevole: 1 simulazione su 10 finisce qui. Include crisi prolungate.</div>
-        <div>⚫ <strong>Linea tratteggiata</strong> — Capitale versato totale, senza rendimenti.</div>
-      </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1e2d40;font-size:10px;color:#4a5568;line-height:1.5">
-        ⚠️ I rendimenti passati non predicono il futuro. Il futuro potrebbe differire significativamente. Questo strumento è educativo, non consulenza finanziaria.
-      </div>
-    </div>
-    <div id="ideal-proj-table"></div>
-    <div style="font-size:10px;color:#4a5568;margin-top:16px;line-height:1.5">
-      ⚠️ Le proiezioni sono simulate su rendimenti storici a scopo educativo e non costituiscono consulenza finanziaria. I rendimenti passati non garantiscono rendimenti futuri. Prima di investire consulta un consulente finanziario abilitato (OCF).
-    </div>
-  </div>
-</div>
+</html
 
 >
