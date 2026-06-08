@@ -794,10 +794,7 @@ function updateBottomNav(tab){
     <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Personalizza i pesi</div>
     <div id="ideal-sliders"></div>
     <div id="ideal-alloc-total" class="alloc-total"></div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="iGoStep('proj')" style="flex:1;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:14px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
-      <button onclick="iGoCompare()" style="flex:1;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:14px;border-radius:12px;cursor:pointer">Confronta col reale 🔍</button>
-    </div>
+    <button onclick="iGoStep('proj')" style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
   </div>
 
   <!-- Step 3: Proiezioni -->
@@ -2096,8 +2093,8 @@ var HIST_RETURNS = {
 function iCalcProj(){
   var monthly=parseFloat(document.getElementById('proj-monthly')?.value)||(IDEAL_STATE.monthlyEquiv||200);
   var years=parseInt(document.getElementById('proj-years')?.value)||IDEAL_STATE.horizon||20;
-  var pm=document.getElementById('proj-monthly');if(pm&&!pm._pre){pm.value=monthly;pm._pre=true;}
-  var py=document.getElementById('proj-years');if(py&&!py._pre){py.value=years;py._pre=true;}
+  var pm=document.getElementById('proj-monthly');if(pm)pm.value=monthly;
+  var py=document.getElementById('proj-years');if(py)py.value=years;
   var months=years*12,w=IDEAL_STATE.weights,invested=monthly*months;
   var status=document.getElementById('ideal-proxy-status');
   var realReturns=typeof calcAllocReturns==='function'?calcAllocReturns(w):null;
@@ -2179,13 +2176,25 @@ function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90, ba
       if(window._iBtChart)window._iBtChart.destroy();
       var st=Math.max(1,Math.floor(backtest.length/24)),bl=[],bv=[],bvi=[];
       for(var bi=0;bi<backtest.length;bi+=st){bl.push(Math.round(bi/12)+'a');bv.push(Math.round(backtest[bi].val));bvi.push(Math.round(backtest[bi].inv));}
+      // Calcola statistiche backtest
+      var finalVal=backtest[backtest.length-1].val;
+      var finalInv=backtest[backtest.length-1].inv;
+      var btYears=Math.round(backtest.length/12);
+      var btReturn=finalInv>0?((finalVal/finalInv-1)*100).toFixed(1):0;
+      var isUp=finalVal>finalInv;
+      // Aggiorna header backtest con periodo e rendimento
+      var btTitle=document.querySelector('#ideal-backtest-wrap > div:first-child');
+      if(btTitle)btTitle.innerHTML='📊 Backtest storico — ultimi '+btYears+' anni'+
+        ' <span style="margin-left:8px;color:'+(isUp?'#4ade9e':'#f87171')+'">'+
+        (isUp?'+':'')+btReturn+'% sul capitale versato</span>';
       window._iBtChart=new Chart(btc,{type:'line',data:{labels:bl,datasets:[
-        {label:'Valore',data:bv,borderColor:backtest[backtest.length-1].val>backtest[backtest.length-1].inv?'#4ade9e':'#f87171',backgroundColor:backtest[backtest.length-1].val>backtest[backtest.length-1].inv?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
-        {label:'Versato',data:bvi,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}
+        {label:'Valore portafoglio',data:bv,borderColor:isUp?'#4ade9e':'#f87171',backgroundColor:isUp?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
+        {label:'Capitale versato',data:bvi,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}
       ]},options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},tooltip:{mode:'index',intersect:false}},
+        plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},
+          tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}}}},
         scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
-          y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k':v;},maxTicksLimit:5},position:'right'}}}});
+          y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},position:'right'}}}});
     }
   }
   if(window._iProjChart)window._iProjChart.destroy();
