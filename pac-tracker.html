@@ -2114,8 +2114,34 @@ function iRandNorm(){
   return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
 }
 
-function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90){
+function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90, backtest){
   var ctx=document.getElementById('ideal-proj-chart');if(!ctx)return;
+  // Backtest chart
+  if(backtest&&backtest.length>0){
+    var btWrap=document.getElementById('ideal-backtest-wrap');
+    if(btWrap)btWrap.style.display='block';
+    var btCtx=document.getElementById('ideal-backtest-chart');
+    if(btCtx){
+      if(window._iBtChart)window._iBtChart.destroy();
+      var step2=Math.max(1,Math.floor(backtest.length/24));
+      var btL=[],btV=[],btI=[];
+      for(var bi=0;bi<backtest.length;bi+=step2){
+        btL.push(Math.round(bi/12)+'a');
+        btV.push(Math.round(backtest[bi].val));
+        btI.push(Math.round(backtest[bi].inv));
+      }
+      var isUp=backtest[backtest.length-1].val>backtest[backtest.length-1].inv;
+      window._iBtChart=new Chart(btCtx,{type:'line',
+        data:{labels:btL,datasets:[
+          {label:'Valore',data:btV,borderColor:isUp?'#4ade9e':'#f87171',backgroundColor:isUp?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
+          {label:'Versato',data:btI,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0},
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},tooltip:{mode:'index',intersect:false}},
+          scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
+            y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k':v;},maxTicksLimit:5},position:'right'}}}});
+    }
+  }
   if(window._iProjChart)window._iProjChart.destroy();
 
   // Costruisci serie mensili per ogni percentile
@@ -2164,7 +2190,7 @@ function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90){
   });
 }
 
-function iRenderProjTable(monthly, years, invested, p10, p25, p50, p75, p90){
+function iRenderProjTable(monthly, years, invested, p10, p25, p50, p75, p90, dataYears){
   var el=document.getElementById('ideal-proj-table');if(!el)return;
   function fmt(v){return v>=1000?(v/1000).toFixed(1)+'k€':Math.round(v)+'€';}
   function mul(v){return '+'+((v/invested-1)*100).toFixed(0)+'%';}
@@ -2191,6 +2217,157 @@ function initIdealPortfolio(){
 
 function saveIdealState(){
   try{localStorage.setItem('pac_ideal',JSON.stringify(IDEAL_STATE));}catch(e){}
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// DATI PROXY STORICI PER BACKTEST
+// ════════════════════════════════════════════════════════════════════════════
+var PROXY_DEFS = {
+  glob:   [{ticker:'^GSPC',w:0.65},{ticker:'EFA',w:0.35}],
+  em:     [{ticker:'EEM',w:1.0}],
+  eu:     [{ticker:'EFA',w:1.0}],
+  bondlt: [{ticker:'TLT',w:1.0}],
+  bondct: [{ticker:'SHY',w:1.0}],
+  gold:   [{ticker:'GLD',w:1.0}],
+  comm:   [{ticker:'GSG',w:1.0}],
+  cash:   [{ticker:'^IRX',w:1.0}],
+  fx:     [{ticker:'EURUSD=X',w:1.0}],
+};
+var PROXY_DATA={};
+var PROXY_MONTHLY={};
+
+async function loadProxyData(){
+  var btn=document.getElementById('ideal-load-proxy');
+  var status=document.getElementById('ideal-proxy-status');
+  if(btn)btn.disabled=true;
+  var tickers={};
+  Object.values(PROXY_DEFS).forEach(function(arr){arr.forEach(function(d){tickers[d.ticker]=true;});});
+  var tot=Object.keys(tickers).length, loaded=0;
+  await Promise.allSettled(Object.keys(tickers).map(async function(ticker){
+    try{
+      if(status)status.textContent='Carico '+ticker+'…';
+      var data=await fetchYChartWithFallback(ticker,'30y');
+      if(data&&data.timestamps&&data.timestamps.length>12){
+        PROXY_DATA[ticker]=data; loaded++;
+        console.log('[Proxy] OK '+ticker+': '+data.timestamps.length+' punti');
+      }
+    }catch(e){console.warn('[Proxy] Fail '+ticker,e);}
+  }));
+  var fx=buildMonthlyMap('EURUSD=X');
+  Object.keys(PROXY_DEFS).forEach(function(cat){
+    if(cat==='fx')return;
+    PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);
+  });
+  try{localStorage.setItem('pac_proxy_v1',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  if(status)status.textContent='Caricati '+loaded+'/'+tot+' serie storiche';
+  if(btn)btn.disabled=false;
+  iCalcProj();
+}
+
+function loadProxyFromStorage(){
+  try{
+    var raw=localStorage.getItem('pac_proxy_v1');
+    if(!raw)return false;
+    var d=JSON.parse(raw);
+    if(!d||!d.monthly)return false;
+    var age=(Date.now()/1000)-(d.ts||0);
+    if(age>7*86400)return false;
+    PROXY_MONTHLY=d.monthly;
+    console.log('[Proxy] Cache OK ('+Math.round(age/3600)+'h)');
+    return true;
+  }catch(e){return false;}
+}
+
+function buildMonthlyMap(ticker){
+  var data=PROXY_DATA[ticker];
+  if(!data||!data.timestamps||data.timestamps.length<2)return {};
+  var map={};
+  for(var i=0;i<data.timestamps.length;i++){
+    var d=new Date(data.timestamps[i]*1000);
+    var key=d.getFullYear()*100+d.getMonth();
+    map[key]={close:data.closes[i]};
+  }
+  var keys=Object.keys(map).sort();
+  var returns={};
+  for(var j=1;j<keys.length;j++){
+    var k=keys[j],pk=keys[j-1];
+    if(map[k]&&map[pk]&&map[pk].close>0)returns[k]=map[k].close/map[pk].close-1;
+  }
+  return returns;
+}
+
+function buildCatReturns(defs,fxReturns){
+  if(!defs||!defs.length)return [];
+  if(defs.length===1&&defs[0].ticker==='^IRX'){
+    var data=PROXY_DATA['^IRX'];
+    if(!data||!data.closes)return [];
+    return data.closes.map(function(c){return c/100/12;});
+  }
+  var maps=defs.map(function(d){return {w:d.w,ret:buildMonthlyMap(d.ticker)};});
+  var allKeys=null;
+  maps.forEach(function(m){
+    var ks=new Set(Object.keys(m.ret));
+    if(allKeys===null)allKeys=ks;
+    else allKeys=new Set([...allKeys].filter(function(k){return ks.has(k);}));
+  });
+  if(!allKeys||allKeys.size===0)return [];
+  return [...allKeys].sort().map(function(k){
+    var usdRet=0;
+    maps.forEach(function(m){usdRet+=m.w*(m.ret[k]||0);});
+    var fxR=fxReturns[k]||0;
+    return (1+usdRet)/(1+fxR)-1;
+  });
+}
+
+function calcAllocReturns(weights){
+  var minLen=Infinity,hasData=false;
+  Object.keys(weights).forEach(function(cat){
+    var w=weights[cat]||0;
+    if(w>0&&PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length>0){
+      minLen=Math.min(minLen,PROXY_MONTHLY[cat].length);
+      hasData=true;
+    }
+  });
+  if(!hasData||minLen<24||minLen===Infinity)return null;
+  var returns=[];
+  for(var i=0;i<minLen;i++){
+    var r=0;
+    Object.keys(weights).forEach(function(cat){
+      var w=(weights[cat]||0)/100;
+      if(w>0&&PROXY_MONTHLY[cat]){
+        var arr=PROXY_MONTHLY[cat];
+        r+=w*(arr[arr.length-minLen+i]||0);
+      }
+    });
+    returns.push(r);
+  }
+  return returns;
+}
+
+function bootstrapSimulation(monthlyReturns,projMonths,monthlyPAC,N){
+  if(!monthlyReturns||monthlyReturns.length<12)return null;
+  var results=[];
+  for(var i=0;i<N;i++){
+    var val=0;
+    for(var m=0;m<projMonths;m++){
+      val=(val+monthlyPAC)*(1+monthlyReturns[Math.floor(Math.random()*monthlyReturns.length)]);
+    }
+    results.push(val);
+  }
+  results.sort(function(a,b){return a-b;});
+  return {p10:results[Math.floor(N*0.10)],p25:results[Math.floor(N*0.25)],p50:results[Math.floor(N*0.50)],p75:results[Math.floor(N*0.75)],p90:results[Math.floor(N*0.90)]};
+}
+
+function historicalBacktest(monthlyReturns,monthlyPAC){
+  if(!monthlyReturns||monthlyReturns.length<12)return null;
+  var val=0,invested=0,history=[];
+  monthlyReturns.forEach(function(r){
+    val=(val+monthlyPAC)*(1+r);
+    invested+=monthlyPAC;
+    history.push({val:val,inv:invested});
+  });
+  return history;
 }
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
@@ -3507,7 +3684,8 @@ function renderPerTableSimple(){
     '<div style="font-size:14px;font-weight:700;color:'+portCol+'">'+portTxt+'</div>'+
   '</div>';
 
-  el.innerHTML='<div>'+rows+'</div>';
+  var src=dataYears>0?'Bootstrap su '+dataYears+' anni di dati storici (S&P500, MSCI EAFE, EEM, TLT, GLD…) in EUR.':'Simulazione statistica — carica i dati storici per maggiore accuratezza.';
+  el.innerHTML='<div>'+rows+'</div><div style="font-size:10px;color:#4a5568;margin-top:8px">'+src+'</div>';
 }
 
 function rPeriodTable(cp,tv){
@@ -4936,7 +5114,7 @@ document.addEventListener('click', function(e){
   if(btn) closeDrawer();
 }, true); // capture phase
 
-loadS();ensureTickerCorrections();ensureISINs();initIdealPortfolio();
+loadS();ensureTickerCorrections();ensureISINs();initIdealPortfolio();loadProxyFromStorage();
 // Carica dati storici da cache PRIMA di disegnare i grafici
 loadPCFromStorage();
 rdash();initPortPills();checkOnboarding();
@@ -5399,6 +5577,15 @@ function switchSettingsTab(tab){
 
   <!-- Step 3: Proiezioni -->
   <div id="ideal-proj" style="display:none">
+    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <div style="font-size:13px;font-weight:700;color:#e8e9ea">Dati storici reali</div>
+        <div id="ideal-proxy-status" style="font-size:11px;color:#4a5568;margin-top:2px">Carica per simulazioni accurate</div>
+      </div>
+      <button id="ideal-load-proxy" onclick="loadProxyData()" style="padding:8px 16px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8b84b;font-weight:700;font-size:12px;cursor:pointer">
+        ↺ Carica (~20 anni)
+      </button>
+    </div>
     <div class="proj-input-row">
       <div class="proj-input-group">
         <label>Versamento mensile (€)</label>
@@ -5409,6 +5596,11 @@ function switchSettingsTab(tab){
         <input type="number" id="proj-years" value="20" min="1" max="40" oninput="iCalcProj()">
       </div>
     </div>
+    <div id="ideal-backtest-wrap" style="display:none;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Backtest storico</div>
+      <div style="height:160px;position:relative"><canvas id="ideal-backtest-chart"></canvas></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Proiezioni future — Monte Carlo</div>
     <div id="ideal-proj-chart-wrap" style="height:260px;position:relative;margin-bottom:20px">
       <canvas id="ideal-proj-chart"></canvas>
     </div>
