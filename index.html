@@ -1165,7 +1165,7 @@ function computeSecAlloc(cp){
 
 // ═══ TABS ════════════════════════════════════════════════════════════════════
 const TABS=['dashboard','portfolio','transactions','performance','report','simulator'];
-function switchTab(n){TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===n);document.querySelectorAll('nav button')[TABS.indexOf(t)].classList.toggle('active',t===n);});renderTab(n);}
+function switchTab(n){closeDrawer();TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===n);document.querySelectorAll('nav button')[TABS.indexOf(t)].classList.toggle('active',t===n);});renderTab(n);}
 function curTab(){return TABS.find(t=>document.getElementById('tab-'+t).classList.contains('active'))||'dashboard';}
 function renderTab(n){if(n==='dashboard')rdash();if(n==='portfolio'){rport();}if(n==='transactions')rtx();if(n==='performance')rperf();if(n==='report')rrep();if(n==='simulator')initSim();}
 
@@ -2637,7 +2637,7 @@ function openDrawer(posId){
     <button class="btn btn-primary" style="flex:1;justify-content:center;min-width:130px" onclick="closeDrawer();switchTab('transactions');setTimeout(()=>{openModal('transaction');document.getElementById('tx-pos').value='${posId}'},80)">+ Aggiungi Acquisto</button>
   </div>
   <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="closeDrawer();switchTab('portfolio');setTimeout(()=>editPos('${posId}'),80)">✏️ Modifica Strumento</button>`;
-  document.getElementById('drw-bd').innerHTML=priceHero+miniChart+stats+compHtml+txHtml+actions;
+  document.getElementById('drw-bd').innerHTML=priceHero+miniChart+stats+compHtml+trancheHtml+txHtml+actions;
   var drwEl=document.getElementById('drw');drwEl.style.transform='translateX(0)';
   document.getElementById('drw-ov').classList.add('open');
   document.body.style.overflow='hidden';
@@ -4554,16 +4554,21 @@ document.addEventListener('touchend', function(){
 }, {passive:true});
 
 loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
-// Auto-carica dati storici in background se non presenti
+// Auto-carica dati storici in background se non presenti o vecchi (>24h)
 setTimeout(function(){
   var hasPCData=Object.keys(PC).some(function(k){
     return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;
   });
-  if(!hasPCData&&S.positions&&S.positions.some(function(p){return p.ticker;})){
-    console.log('[PACcamelo] Auto-caricamento dati storici in background...');
+  var pcTs=null;
+  try{pcTs=JSON.parse(localStorage.getItem('pac_pc_v8')||'{}').ts;}catch(e){}
+  var pcStale=!pcTs||(Date.now()/1000-pcTs)>86400; // >24h
+
+  if((!hasPCData||pcStale)&&S.positions&&S.positions.some(function(p){return p.ticker;})){
+    if(!hasPCData)console.log('[PACcamelo] Dati storici mancanti, caricamento…');
+    else console.log('[PACcamelo] Dati storici obsoleti (>24h), aggiornamento…');
     loadPerfData();
   }
-}, 3000);
+}, 4000);
 
 updateDB();initTips();initTabDrag();autoRefreshCheck();setTimeout(function(){updateBottomNav('dashboard');},100);
 // Auto-load performance data on startup
@@ -4581,11 +4586,58 @@ setTimeout(function(){
     loadPerfData();
   }
 },800);
-// Auto-aggiorna prezzi se mancanti o obsoleti (>4h)
+// ─── STALE WHILE REVALIDATE ─────────────────────────────────────────────────
+// Mostra subito i dati salvati, aggiorna silenziosamente in background
 setTimeout(function(){
+  var now=Date.now();
+  var STALE_MS=4*60*60*1000; // 4 ore
   var missing=S.positions.some(function(p){return p.ticker&&!p.priceUpdatedAt;});
-  if(missing){console.log('[PACcamelo] Prezzi mancanti, aggiornamento…');updateAllPrices();}
-},1500);
+  var stale=S.positions.some(function(p){
+    if(!p.ticker||!p.priceUpdatedAt)return false;
+    return (now-new Date(p.priceUpdatedAt).getTime())>STALE_MS;
+  });
+  if(missing||stale){
+    if(missing)console.log('[PACcamelo] Prezzi mancanti, aggiornamento silenzioso…');
+    if(stale)console.log('[PACcamelo] Prezzi obsoleti (>4h), aggiornamento silenzioso…');
+    // Aggiorna senza mostrare spinner — UI rimane visibile con dati vecchi
+    updateAllPricesSilent();
+  }
+},2000);
+
+async function updateAllPricesSilent(){
+  var wt=S.positions.filter(function(p){return p.ticker;});
+  if(!wt.length)return;
+  try{
+    var results=await Promise.allSettled(wt.map(function(pos){
+      return fetchSinglePrice(pos.ticker,pos.isin)
+        .then(function(res){return{pos:pos,res:res};})
+        .catch(function(e){return{pos:pos,err:e};});
+    }));
+    var updated=false;
+    results.forEach(function(r){
+      if(r.status==='fulfilled'&&r.value&&r.value.res){
+        var pos=r.value.pos,res=r.value.res;
+        S.positions=S.positions.map(function(p){
+          return p.id===pos.id?Object.assign({},p,{
+            currentPrice:res.price,
+            priceCur:'EUR',
+            priceOrigCur:res.rawCur,
+            priceUpdatedAt:new Date().toISOString()
+          }):p;
+        });
+        updated=true;
+      }
+    });
+    if(updated){
+      saveS();
+      // Aggiorna solo la UI del tab corrente (silenzioso)
+      var ct=curTab();
+      if(ct==='dashboard')rdash();
+      else if(ct==='portfolio')rport();
+      console.log('[PACcamelo] Prezzi aggiornati silenziosamente');
+    }
+  }catch(e){console.warn('[PACcamelo] Aggiornamento silenzioso fallito:',e);}
+}
 // ═══ MOBILE: PERFORMANCE ACCORDION ══════════════════════════════════════════
 function initPerfAccordion(){
   if(window.innerWidth>700)return;
