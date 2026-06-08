@@ -1351,36 +1351,47 @@ function rport(){
   try{ tbody.innerHTML=cp.map(p=>{
   var gainColor=p.gainPct>=0?'var(--green)':'var(--red)';
   return `<tr onclick="openDrawer('${p.id}')" style="cursor:pointer">
-    <td style="padding:10px 8px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div>
-          <div style="font-weight:600;font-size:13px;line-height:1.3">${esc(p.name)}</div>
+    <td style="padding:8px 6px">
+      <div style="display:flex;align-items:center;gap:8px">
+
+        <!-- COL 1: nome + ticker (25%) -->
+        <div style="flex:0 0 auto;width:35%;min-width:0">
+          <div style="font-weight:600;font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</div>
           <span style="font-size:10px;color:var(--text-muted);background:var(--surface3);padding:2px 5px;border-radius:4px;display:inline-block;margin-top:3px">${dt(p.ticker)||''}</span>
         </div>
-        <div style="text-align:right;flex-shrink:0">
+
+        <!-- COL 2: sparkline (centro) -->
+        <div style="flex:1;min-width:60px;max-width:90px">
+          ${PC[p.ticker]&&PC[p.ticker].timestamps?'<canvas id="spark-'+p.id+'" width="80" height="36" style="display:block;width:100%;opacity:0.3"></canvas>':''}
+        </div>
+
+        <!-- COL 3: dati (destra, 4 righe) -->
+        <div style="flex:0 0 auto;text-align:right;min-width:90px">
+          <!-- Riga 1: valore totale -->
           <div style="font-weight:800;font-size:15px;color:var(--accent)">${p.currentVal>0?fEur(p.currentVal):'—'}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${p.currentPrice>0?fEur(p.currentPrice):''}</div>
-          ${PC[p.ticker]&&PC[p.ticker].timestamps?'<canvas id="spark-'+p.id+'" width="80" height="28" style="display:block;margin-top:4px;opacity:0.3"></canvas>':''} 
+          <!-- Riga 2: gain% o rendimento periodo -->
           ${(function(){
-            // Mostra gain% in base al periodo selezionato
             var pr=null;
             if(_portPeriod==='cur'||_portPeriod==='max'){
-              // Attuale/Max: gain% dal prezzo medio di carico
               return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
             } else {
-              // Periodo: rendimento price-return del periodo
               try{pr=getPortPeriodReturn(p.ticker);}catch(e){}
               if(pr===null||isNaN(pr))return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
               return '<div style="font-size:12px;font-weight:700;color:'+(pr>=0?'var(--green)':'var(--red)')+'">'+PORT_PERIODS[_portPeriod].label+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';
             }
           })()}
-          <div style="font-size:12px;font-weight:700;color:${gainColor};margin-top:2px">${p.totalCost>0?fPct(p.gainPct):'—'}</div>
-          ${(function(){try{if(_portPeriod==='cur'||!p.ticker)return '';var pr=getPortPeriodReturn(p.ticker);if(pr===null||isNaN(pr))return '';var lbl=PORT_PERIODS[_portPeriod]?PORT_PERIODS[_portPeriod].label:_portPeriod;return '<div style="font-size:10px;color:'+(pr>=0?'var(--green)':'var(--red)')+';margin-top:1px">'+lbl+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';}catch(e){return '';}})()}
+          <!-- Riga 3: PMC → prezzo attuale -->
+          ${p.avgCost>0&&p.currentPrice>0?'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">'+fEur(p.avgCost)+' → '+fEur(p.currentPrice)+'</div>':''}
+          <!-- Riga 4: rendimento periodo (solo se non già mostrato sopra) -->
+          ${(function(){
+            if(_portPeriod==='cur'||_portPeriod==='max') return '';
+            return ''; // periodo già in riga 2
+          })()}
         </div>
+
       </div>
     </td>
-  </tr>`;
-}).join('');
+  </tr>`;}).join('');
 }catch(e){console.error('[rport] Errore template:',e);tbody.innerHTML='';}
   // Disegna sparkline
   setTimeout(function(){cp.forEach(function(p){if(PC[p.ticker])drawSparkline('spark-'+p.id,p.ticker);});},50);
