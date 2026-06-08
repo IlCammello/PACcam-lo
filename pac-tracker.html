@@ -634,7 +634,15 @@ function updateBottomNav(tab){
       Ticker <span class="ticker-warn">⚠</span> = da verificare · Clicca il prezzo per aggiornarlo manualmente ·
       ETF su LSE (SWDA.L, SGLN.L…) possono essere quotati in GBP o USD: Scalable mostra i prezzi in EUR convertiti
     </div>
-  </div>
+  
+    <div id="port-compare-section" style="margin-top:24px;display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em">Confronto vs Portafoglio Ideale</div>
+        <button onclick="switchTab('simulator')" style="font-size:11px;color:#e8b84b;background:none;border:none;cursor:pointer">Modifica →</button>
+      </div>
+      <div id="port-compare-body"></div>
+    </div>
+</div>
   <div class="tab-content" id="tab-transactions">
     <div class="section-header">
       <h2 class="section-title">Transazioni</h2>
@@ -1346,6 +1354,7 @@ function getPortPeriodReturn(ticker){
 }
 
 function rport(){
+  setTimeout(renderPortCompare,200);
   const cp=computeAll();const tbody=document.getElementById('port-tbody');
   if(!cp.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">Nessuna posizione</div></div></td></tr>`;return;}
   try{ tbody.innerHTML=cp.map(p=>{
@@ -1937,8 +1946,8 @@ function iSelectProfileOpt(el, id){
   IDEAL_STATE.profile=profile;
   document.getElementById('ideal-profile-opts').querySelectorAll('.quiz-opt').forEach(function(b){b.classList.remove('selected');});
   el.classList.add('selected');
-  // Vai direttamente all'allocazione
-  setTimeout(function(){iSelectProfile(id);},300);
+  var amtCard=document.getElementById('ideal-amount-card');
+  if(amtCard){amtCard.style.display='block';amtCard.scrollIntoView({behavior:'smooth',block:'nearest'});}
 }
 
 function iSelectProfile(id){
@@ -1948,8 +1957,13 @@ function iSelectProfile(id){
   IDEAL_STATE.template = 'suggest';
   IDEAL_TEMPLATES[0].w = Object.assign({},profile.w);
   // Salva orizzonte
-  var sel = document.getElementById('ideal-horizon');
-  if(sel) IDEAL_STATE.horizon = parseInt(sel.value)||20;
+  var sel=document.getElementById('ideal-horizon');
+  if(sel)IDEAL_STATE.horizon=parseInt(sel.value)||20;
+  var amt=document.getElementById('ideal-amount');
+  if(amt)IDEAL_STATE.monthlyAmount=parseFloat(amt.value)||200;
+  IDEAL_STATE.cadenza=IDEAL_STATE.cadenza||1;
+  IDEAL_STATE.monthlyEquiv=IDEAL_STATE.monthlyAmount/IDEAL_STATE.cadenza;
+  saveIdealState();
   iGoStep('alloc');
 }
 
@@ -1961,7 +1975,7 @@ function iGoStep(step){
     if(btn){btn.classList.toggle('active',s===step);}
   });
   if(step==='alloc') iRenderAlloc();
-  if(step==='proj') iCalcProj();
+  if(step==='proj'){var hasD=Object.keys(PROXY_MONTHLY).some(function(k){return PROXY_MONTHLY[k]&&PROXY_MONTHLY[k].length>0;});if(!hasD){loadProxyData();}else{iCalcProj();}}
   // Abilita step successivi
   if(step==='alloc'||step==='proj'){
     var b=document.querySelector('.ideal-step-btn[data-istep="alloc"]');
@@ -2066,45 +2080,37 @@ var HIST_RETURNS = {
 };
 
 function iCalcProj(){
-  var monthly=parseFloat(document.getElementById('proj-monthly')?.value)||200;
-  var years=parseInt(document.getElementById('proj-years')?.value)||20;
-  var months=years*12;
-  var w=IDEAL_STATE.weights;
-
-  // Rendimento atteso pesato del portafoglio
-  var meanAnn=0, varAnn=0;
-  ASSET_CATS.forEach(function(c){
-    var wt=(w[c.k]||0)/100;
-    var h=HIST_RETURNS[c.k];
-    meanAnn+=wt*h.mean;
-    varAnn+=wt*wt*h.std*h.std;
-  });
-  var stdAnn=Math.sqrt(varAnn);
-  var meanMon=meanAnn/12;
-  var stdMon=stdAnn/Math.sqrt(12);
-
-  // Simulazione Monte Carlo: 1000 percorsi
-  var N=1000, results=[];
-  for(var i=0;i<N;i++){
-    var val=0;
-    for(var m=0;m<months;m++){
-      var r=meanMon+stdMon*iRandNorm();
-      val=(val+monthly)*(1+r);
+  var monthly=parseFloat(document.getElementById('proj-monthly')?.value)||(IDEAL_STATE.monthlyEquiv||200);
+  var years=parseInt(document.getElementById('proj-years')?.value)||IDEAL_STATE.horizon||20;
+  var pm=document.getElementById('proj-monthly');if(pm&&!pm._pre){pm.value=monthly;pm._pre=true;}
+  var py=document.getElementById('proj-years');if(py&&!py._pre){py.value=years;py._pre=true;}
+  var months=years*12,w=IDEAL_STATE.weights,invested=monthly*months;
+  var status=document.getElementById('ideal-proxy-status');
+  var realReturns=typeof calcAllocReturns==='function'?calcAllocReturns(w):null;
+  if(realReturns&&realReturns.length>=24){
+    var sim=bootstrapSimulation(realReturns,months,monthly,1000);
+    var bt=historicalBacktest(realReturns,monthly);
+    iRenderProjChart(months,monthly,invested,sim.p10,sim.p25,sim.p50,sim.p75,sim.p90,bt);
+    iRenderProjTable(monthly,years,invested,sim.p10,sim.p25,sim.p50,sim.p75,sim.p90,Math.round(realReturns.length/12));
+    if(status)status.textContent='Proiezioni su '+Math.round(realReturns.length/12)+' anni di dati reali';
+  } else {
+    var meanAnn=0,varAnn=0;
+    ASSET_CATS.forEach(function(c){
+      var wt=(w[c.k]||0)/100;
+      if(HIST_RETURNS[c.k]){meanAnn+=wt*HIST_RETURNS[c.k].mean;varAnn+=wt*wt*HIST_RETURNS[c.k].std*HIST_RETURNS[c.k].std;}
+    });
+    var meanMon=meanAnn/12,stdMon=Math.sqrt(varAnn)/Math.sqrt(12);
+    var results=[];
+    for(var i=0;i<1000;i++){
+      var val=0;
+      for(var m=0;m<months;m++){val=(val+monthly)*(1+meanMon+stdMon*iRandNorm());}
+      results.push(val);
     }
-    results.push(val);
+    results.sort(function(a,b){return a-b;});
+    iRenderProjChart(months,monthly,invested,results[100],results[250],results[500],results[750],results[900],null);
+    iRenderProjTable(monthly,years,invested,results[100],results[250],results[500],results[750],results[900],0);
+    if(status)status.textContent='Caricamento dati storici in corso…';
   }
-  results.sort(function(a,b){return a-b;});
-
-  // Percentili
-  var p10=results[Math.floor(N*0.10)];
-  var p25=results[Math.floor(N*0.25)];
-  var p50=results[Math.floor(N*0.50)];
-  var p75=results[Math.floor(N*0.75)];
-  var p90=results[Math.floor(N*0.90)];
-  var invested=monthly*months;
-
-  iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90);
-  iRenderProjTable(monthly, years, invested, p10, p25, p50, p75, p90);
 }
 
 function iRandNorm(){
@@ -2135,6 +2141,24 @@ function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90, ba
         data:{labels:btL,datasets:[
           {label:'Valore',data:btV,borderColor:isUp?'#4ade9e':'#f87171',backgroundColor:isUp?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
           {label:'Versato',data:btI,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0},
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},tooltip:{mode:'index',intersect:false}},
+          scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
+            y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k':v;},maxTicksLimit:5},position:'right'}}}});
+    }
+  }
+  if(backtest&&backtest.length>0){
+    var btw=document.getElementById('ideal-backtest-wrap');if(btw)btw.style.display='block';
+    var btc=document.getElementById('ideal-backtest-chart');
+    if(btc){
+      if(window._iBtChart)window._iBtChart.destroy();
+      var st=Math.max(1,Math.floor(backtest.length/24)),bl=[],bv=[],bvi=[];
+      for(var bi=0;bi<backtest.length;bi+=st){bl.push(Math.round(bi/12)+'a');bv.push(Math.round(backtest[bi].val));bvi.push(Math.round(backtest[bi].inv));}
+      window._iBtChart=new Chart(btc,{type:'line',
+        data:{labels:bl,datasets:[
+          {label:'Valore',data:bv,borderColor:backtest[backtest.length-1].val>backtest[backtest.length-1].inv?'#4ade9e':'#f87171',backgroundColor:backtest[backtest.length-1].val>backtest[backtest.length-1].inv?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)',fill:true,tension:.3,borderWidth:2,pointRadius:0},
+          {label:'Versato',data:bvi,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}
         ]},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:8}},tooltip:{mode:'index',intersect:false}},
@@ -2200,7 +2224,7 @@ function iRenderProjTable(monthly, years, invested, p10, p25, p50, p75, p90, dat
         return '<th style="padding:8px;text-align:left;color:#7a90a8;border-bottom:1px solid #263040;white-space:nowrap">'+h+'</th>';
       }).join('')+
     '</tr></thead><tbody>'+
-    [['😎 Ottimistico (P90)',p90,'#4ade9e'],['📈 Buono (P75)',p75,'#86efac'],['📊 Mediano (P50)',p50,'#e8b84b'],['😐 Moderato (P25)',p25,'#f59e0b'],['😟 Pessimistico (P10)',p10,'#f87171']].map(function(r){
+    [['😎 Scenario favorevole (9° su 10)',p90,'#4ade9e'],['📈 Scenario medio-alto (7° su 10)',p75,'#86efac'],['📊 Scenario mediano (5° su 10)',p50,'#e8b84b'],['😐 Scenario medio-basso (3° su 10)',p25,'#f59e0b'],['😟 Scenario sfavorevole (1° su 10)',p10,'#f87171']].map(function(r){
       return '<tr><td style="padding:8px;color:'+r[2]+'">'+r[0]+'</td><td style="padding:8px;font-weight:700;color:'+r[2]+'">'+fmt(r[1])+'</td><td style="padding:8px;color:'+r[2]+'">'+mul(r[1])+'</td></tr>';
     }).join('')+
     '<tr style="border-top:1px solid #263040"><td style="padding:8px;color:#7a90a8">💰 Capitale versato</td><td style="padding:8px;color:#7a90a8;font-weight:700">'+fmt(invested)+'</td><td style="padding:8px;color:#7a90a8">—</td></tr>'+
@@ -2368,6 +2392,147 @@ function historicalBacktest(monthlyReturns,monthlyPAC){
     history.push({val:val,inv:invested});
   });
   return history;
+}
+
+
+function iSelectCadenza(months, el){
+  IDEAL_STATE.cadenza=months;
+  var el2=document.getElementById('cadenza-opts');
+  if(el2)el2.querySelectorAll('.quiz-opt').forEach(function(b){b.classList.remove('selected');});
+  el.classList.add('selected');
+}
+
+function iGoCompare(){
+  saveIdealState();
+  switchTab('portfolio');
+  setTimeout(function(){
+    var el=document.getElementById('port-compare-section');
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  },300);
+}
+
+var PROXY_DEFS={glob:[{ticker:'^GSPC',w:0.65},{ticker:'EFA',w:0.35}],em:[{ticker:'EEM',w:1.0}],eu:[{ticker:'EFA',w:1.0}],bondlt:[{ticker:'TLT',w:1.0}],bondct:[{ticker:'SHY',w:1.0}],gold:[{ticker:'GLD',w:1.0}],comm:[{ticker:'GSG',w:1.0}],cash:[{ticker:'^IRX',w:1.0}],fx:[{ticker:'EURUSD=X',w:1.0}]};
+var PROXY_DATA={};
+var PROXY_MONTHLY={};
+
+async function loadProxyData(){
+  var status=document.getElementById('ideal-proxy-status');
+  if(status)status.textContent='Caricamento dati storici…';
+  var tickers={};
+  Object.values(PROXY_DEFS).forEach(function(arr){arr.forEach(function(d){tickers[d.ticker]=true;});});
+  var tot=Object.keys(tickers).length,loaded=0;
+  await Promise.allSettled(Object.keys(tickers).map(async function(ticker){
+    try{
+      var data=await fetchYChartWithFallback(ticker,'30y');
+      if(data&&data.timestamps&&data.timestamps.length>12){PROXY_DATA[ticker]=data;loaded++;}
+    }catch(e){console.warn('[Proxy]',ticker,e);}
+  }));
+  var fx=buildMonthlyMap('EURUSD=X');
+  Object.keys(PROXY_DEFS).forEach(function(cat){if(cat==='fx')return;PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);});
+  try{localStorage.setItem('pac_proxy_v1',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  if(status)status.textContent='Dati caricati ('+loaded+'/'+tot+' serie)';
+  iCalcProj();
+}
+
+function loadProxyFromStorage(){
+  try{
+    var raw=localStorage.getItem('pac_proxy_v1');if(!raw)return false;
+    var d=JSON.parse(raw);if(!d||!d.monthly)return false;
+    if((Date.now()/1000)-(d.ts||0)>7*86400)return false;
+    PROXY_MONTHLY=d.monthly;return true;
+  }catch(e){return false;}
+}
+
+function buildMonthlyMap(ticker){
+  var data=PROXY_DATA[ticker];if(!data||!data.timestamps||data.timestamps.length<2)return {};
+  var map={};
+  for(var i=0;i<data.timestamps.length;i++){var d=new Date(data.timestamps[i]*1000);map[d.getFullYear()*100+d.getMonth()]={close:data.closes[i]};}
+  var keys=Object.keys(map).sort(),returns={};
+  for(var j=1;j<keys.length;j++){var k=keys[j],pk=keys[j-1];if(map[k]&&map[pk]&&map[pk].close>0)returns[k]=map[k].close/map[pk].close-1;}
+  return returns;
+}
+
+function buildCatReturns(defs,fxReturns){
+  if(!defs||!defs.length)return [];
+  if(defs.length===1&&defs[0].ticker==='^IRX'){var data=PROXY_DATA['^IRX'];if(!data||!data.closes)return [];return data.closes.map(function(c){return c/100/12;});}
+  var maps=defs.map(function(d){return {w:d.w,ret:buildMonthlyMap(d.ticker)};});
+  var allKeys=null;
+  maps.forEach(function(m){var ks=new Set(Object.keys(m.ret));if(allKeys===null)allKeys=ks;else allKeys=new Set([...allKeys].filter(function(k){return ks.has(k);}));});
+  if(!allKeys||allKeys.size===0)return [];
+  return [...allKeys].sort().map(function(k){var r=0;maps.forEach(function(m){r+=m.w*(m.ret[k]||0);});return (1+r)/(1+(fxReturns[k]||0))-1;});
+}
+
+function calcAllocReturns(weights){
+  var minLen=Infinity,hasData=false;
+  Object.keys(weights).forEach(function(cat){var w=weights[cat]||0;if(w>0&&PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length>0){minLen=Math.min(minLen,PROXY_MONTHLY[cat].length);hasData=true;}});
+  if(!hasData||minLen<24||minLen===Infinity)return null;
+  var returns=[];
+  for(var i=0;i<minLen;i++){var r=0;Object.keys(weights).forEach(function(cat){var w=(weights[cat]||0)/100;if(w>0&&PROXY_MONTHLY[cat]){var arr=PROXY_MONTHLY[cat];r+=w*(arr[arr.length-minLen+i]||0);}});returns.push(r);}
+  return returns;
+}
+
+function bootstrapSimulation(monthlyReturns,projMonths,monthlyPAC,N){
+  if(!monthlyReturns||monthlyReturns.length<12)return null;
+  var results=[];
+  for(var i=0;i<N;i++){var val=0;for(var m=0;m<projMonths;m++){val=(val+monthlyPAC)*(1+monthlyReturns[Math.floor(Math.random()*monthlyReturns.length)]);}results.push(val);}
+  results.sort(function(a,b){return a-b;});
+  return {p10:results[Math.floor(N*0.10)],p25:results[Math.floor(N*0.25)],p50:results[Math.floor(N*0.50)],p75:results[Math.floor(N*0.75)],p90:results[Math.floor(N*0.90)]};
+}
+
+function historicalBacktest(monthlyReturns,monthlyPAC){
+  if(!monthlyReturns||monthlyReturns.length<12)return null;
+  var val=0,invested=0,history=[];
+  monthlyReturns.forEach(function(r){val=(val+monthlyPAC)*(1+r);invested+=monthlyPAC;history.push({val:val,inv:invested});});
+  return history;
+}
+
+var ASSET_CLASS_MAP={
+  'Azionario':function(p){
+    if(p.ticker&&(p.ticker.indexOf('SEMA')>=0||p.ticker.indexOf('EEM')>=0))return 'em';
+    if(p.ticker&&(p.ticker.indexOf('MEUD')>=0))return 'eu';
+    return 'glob';
+  },
+  'Obbligazionario':function(p){return p.ticker&&p.ticker.indexOf('XEON')>=0?'cash':'bondlt';},
+  'Materie Prime':function(p){return p.ticker&&(p.ticker.indexOf('SGLN')>=0||p.ticker.indexOf('GLD')>=0)?'gold':'comm';},
+  'Crypto':function(){return 'btc';},
+  'Monetario':function(){return 'cash';},
+};
+
+function getRealAllocation(){
+  var total=S.positions.reduce(function(s,p){return s+(p.currentVal||0);},0);
+  if(total<=0)return null;
+  var alloc={};ASSET_CATS.forEach(function(c){alloc[c.k]=0;});
+  S.positions.forEach(function(p){
+    if(!p.currentVal||p.currentVal<=0)return;
+    var mapper=ASSET_CLASS_MAP[p.assetClass||'Azionario']||function(){return 'glob';};
+    alloc[mapper(p)]=(alloc[mapper(p)]||0)+(p.currentVal/total*100);
+  });
+  return alloc;
+}
+
+function renderPortCompare(){
+  var section=document.getElementById('port-compare-section');
+  var body=document.getElementById('port-compare-body');
+  if(!section||!body)return;
+  if(!IDEAL_STATE.profile||!IDEAL_STATE.weights){section.style.display='none';return;}
+  var real=getRealAllocation();
+  if(!real){section.style.display='none';return;}
+  section.style.display='block';
+  var rows=ASSET_CATS.map(function(c){
+    var rw=Math.round(real[c.k]||0),iw=IDEAL_STATE.weights[c.k]||0;
+    if(rw===0&&iw===0)return '';
+    var diff=rw-iw,dc=Math.abs(diff)<5?'#7a90a8':diff>0?'#f87171':'#4ade9e';
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+      '<div style="width:110px;font-size:11px;color:'+c.color+';flex-shrink:0">'+c.label+'</div>'+
+      '<div style="flex:1"><div style="height:5px;background:'+c.color+';border-radius:2px;width:'+Math.max(rw,0)+'%;opacity:0.9;margin-bottom:3px"></div>'+
+      '<div style="height:3px;background:'+c.color+';border-radius:2px;width:'+Math.max(iw,0)+'%;opacity:0.35"></div></div>'+
+      '<div style="text-align:right;flex-shrink:0;width:80px"><span style="font-size:11px;font-weight:700;color:#e8e9ea">'+rw+'%</span><span style="font-size:10px;color:#4a5568"> / '+iw+'%</span></div>'+
+      '<div style="width:36px;text-align:right;font-size:11px;font-weight:700;color:'+dc+'">'+(diff===0?'—':(diff>0?'+':'')+diff+'%')+'</div></div>';
+  }).filter(Boolean).join('');
+  body.innerHTML='<div style="display:flex;gap:16px;margin-bottom:10px;font-size:10px;color:#4a5568">'+
+    '<div><span style="display:inline-block;width:12px;height:4px;background:#e8b84b;border-radius:2px;opacity:0.9;vertical-align:middle;margin-right:4px"></span>Reale</div>'+
+    '<div><span style="display:inline-block;width:12px;height:2px;background:#e8b84b;border-radius:2px;opacity:0.35;vertical-align:middle;margin-right:4px"></span>Ideale</div></div>'+
+    rows+'<div style="font-size:10px;color:#4a5568;margin-top:6px">Profilo: <span style="color:#e8b84b">'+IDEAL_STATE.profile.icon+' '+IDEAL_STATE.profile.name+'</span></div>';
 }
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
@@ -5114,7 +5279,7 @@ document.addEventListener('click', function(e){
   if(btn) closeDrawer();
 }, true); // capture phase
 
-loadS();ensureTickerCorrections();ensureISINs();initIdealPortfolio();loadProxyFromStorage();
+loadS();ensureTickerCorrections();ensureISINs();initIdealPortfolio();loadProxyFromStorage();loadProxyFromStorage();
 // Carica dati storici da cache PRIMA di disegnare i grafici
 loadPCFromStorage();
 rdash();initPortPills();checkOnboarding();
@@ -5558,6 +5723,28 @@ function switchSettingsTab(tab){
       </div>
     </div>
 
+    <div class="quiz-card" id="ideal-amount-card" style="display:none">
+      <div class="quiz-q">💰 Quanto pensi di investire periodicamente?</div>
+      <div class="quiz-sub">Indica importo e cadenza dei tuoi versamenti PAC.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:11px;color:#7a90a8;display:block;margin-bottom:6px">Importo (€)</label>
+          <input type="number" id="ideal-amount" value="200" min="10" step="50" style="width:100%;padding:10px 12px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:16px;font-weight:700;box-sizing:border-box">
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label style="font-size:11px;color:#7a90a8;display:block;margin-bottom:6px">Cadenza</label>
+          <div style="display:flex;flex-direction:column;gap:6px" id="cadenza-opts">
+            <button class="quiz-opt" onclick="iSelectCadenza(1,this)" style="padding:8px 12px"><span class="quiz-opt-label">A</span>Mensile</button>
+            <button class="quiz-opt" onclick="iSelectCadenza(2,this)" style="padding:8px 12px"><span class="quiz-opt-label">B</span>Bimestrale</button>
+            <button class="quiz-opt" onclick="iSelectCadenza(3,this)" style="padding:8px 12px"><span class="quiz-opt-label">C</span>Trimestrale</button>
+            <button class="quiz-opt" onclick="iSelectCadenza(6,this)" style="padding:8px 12px"><span class="quiz-opt-label">D</span>Semestrale</button>
+          </div>
+        </div>
+      </div>
+      <button onclick="iSelectProfile(IDEAL_STATE.profile&&IDEAL_STATE.profile.id)" style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">
+        Vedi la mia allocazione
+      </button>
+    </div>
     <input type="hidden" id="ideal-horizon" value="20">
   </div>
 
@@ -5569,10 +5756,10 @@ function switchSettingsTab(tab){
     <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Personalizza i pesi</div>
     <div id="ideal-sliders"></div>
     <div id="ideal-alloc-total" class="alloc-total"></div>
-    <button onclick="iGoStep('proj')"
-      style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">
-      Vedi le proiezioni →
-    </button>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="iGoStep('proj')" style="flex:1;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:14px;border:none;border-radius:12px;cursor:pointer">Vedi le proiezioni →</button>
+      <button onclick="iGoCompare()" style="flex:1;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:14px;border-radius:12px;cursor:pointer">Confronta col reale 🔍</button>
+    </div>
   </div>
 
   <!-- Step 3: Proiezioni -->
@@ -5586,16 +5773,18 @@ function switchSettingsTab(tab){
         ↺ Carica (~20 anni)
       </button>
     </div>
-    <div class="proj-input-row">
-      <div class="proj-input-group">
-        <label>Versamento mensile (€)</label>
-        <input type="number" id="proj-monthly" value="200" min="10" oninput="iCalcProj()">
-      </div>
-      <div class="proj-input-group">
-        <label>Anni di investimento</label>
-        <input type="number" id="proj-years" value="20" min="1" max="40" oninput="iCalcProj()">
-      </div>
+    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#e8e9ea">Dati storici reali</div><div id="ideal-proxy-status" style="font-size:11px;color:#4a5568;margin-top:2px">Caricamento in corso…</div></div>
     </div>
+    <div class="proj-input-row">
+      <div class="proj-input-group"><label>Versamento mensile (€)</label><input type="number" id="proj-monthly" value="200" min="10" oninput="iCalcProj()"></div>
+      <div class="proj-input-group"><label>Anni di investimento</label><input type="number" id="proj-years" value="20" min="1" max="40" oninput="iCalcProj()"></div>
+    </div>
+    <div id="ideal-backtest-wrap" style="display:none;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Backtest storico</div>
+      <div style="height:160px;position:relative"><canvas id="ideal-backtest-chart"></canvas></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Proiezioni future — Monte Carlo</div>
     <div id="ideal-backtest-wrap" style="display:none;margin-bottom:16px">
       <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Backtest storico</div>
       <div style="height:160px;position:relative"><canvas id="ideal-backtest-chart"></canvas></div>
@@ -5603,6 +5792,18 @@ function switchSettingsTab(tab){
     <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Proiezioni future — Monte Carlo</div>
     <div id="ideal-proj-chart-wrap" style="height:260px;position:relative;margin-bottom:20px">
       <canvas id="ideal-proj-chart"></canvas>
+    </div>
+    <div style="background:#0f1520;border:1px solid #1e2d40;border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#e8e9ea;margin-bottom:10px">Come leggere il grafico</div>
+      <div style="font-size:11px;color:#7a90a8;line-height:1.7">
+        <div>🟡 <strong>Linea gialla</strong> — Scenario mediano: metà delle simulazioni è sopra, metà sotto.</div>
+        <div>🟢 <strong>Area verde</strong> — Scenario favorevole: 1 simulazione su 10 finisce qui.</div>
+        <div>🔴 <strong>Area rossa</strong> — Scenario sfavorevole: 1 simulazione su 10 finisce qui. Include crisi prolungate.</div>
+        <div>⚫ <strong>Linea tratteggiata</strong> — Capitale versato totale, senza rendimenti.</div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1e2d40;font-size:10px;color:#4a5568;line-height:1.5">
+        ⚠️ I rendimenti passati non predicono il futuro. Il futuro potrebbe differire significativamente. Questo strumento è educativo, non consulenza finanziaria.
+      </div>
     </div>
     <div id="ideal-proj-table"></div>
     <div style="font-size:10px;color:#4a5568;margin-top:16px;line-height:1.5">
