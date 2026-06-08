@@ -623,8 +623,8 @@ function updateBottomNav(tab){
       </div>
     </div>
     <div id="price-upd-status" style="font-size:11px;color:var(--text-muted);margin-bottom:12px;min-height:16px"></div>
-    <div id="port-period-bar" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 0 12px 0">
-      <span style="font-size:11px;color:#7a90a8;margin-right:4px">Rendimento:</span>
+    <div id="port-period-bar" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center;padding:4px 0 12px 0;scrollbar-width:none">
+      
     </div>
     <div class="table-wrapper"><table>
       <thead><tr><th style="padding:8px">Le Mie Posizioni</th></tr></thead>
@@ -639,6 +639,13 @@ function updateBottomNav(tab){
     <div class="section-header">
       <h2 class="section-title">Transazioni</h2>
       <button class="btn btn-primary" onclick="openModal('transaction')">+ Aggiungi Acquisto</button>
+    </div>
+    <!-- Ricerca ETF in Transazioni -->
+    <div style="position:relative;margin-bottom:14px">
+      <input id="tx-etf-search" type="text" placeholder="🔍 Cerca ETF e aggiungi acquisto..." autocomplete="off"
+        oninput="txEtfSearch(this.value)"
+        style="width:100%;padding:10px 14px;background:#0f1520;border:1px solid #263040;border-radius:10px;color:#e8e9ea;font-size:14px;box-sizing:border-box">
+      <div id="tx-etf-suggestions" style="display:none;position:absolute;z-index:200;background:#0f1520;border:1px solid #263040;border-radius:10px;margin-top:4px;max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);width:100%"></div>
     </div>
     <div class="table-wrapper" id="tx-table-wrap"><table>
       <thead><tr><th>Data</th><th>Strumento</th><th>Quote</th><th>Prezzo €</th><th>Comm. €</th><th>Totale €</th><th>Note</th><th></th></tr></thead>
@@ -691,7 +698,10 @@ function updateBottomNav(tab){
       </div>
     </div>
     <div class="perf-block" id="block-per" style="display:none">
-      <div class="perf-block-title">Rendimenti per Periodo</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="perf-block-title" style="margin-bottom:0">Rendimenti per Periodo</div>
+      </div>
+      <div id="per-period-bar" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:none"></div>
       <div id="per-table"></div>
       <p style="font-size:11px;color:var(--text-muted);margin-top:8px">"Dal mio acq." = rendimento sul prezzo medio di carico · Aggregati ponderati per valore attuale</p>
     </div>
@@ -1155,7 +1165,7 @@ function computeSecAlloc(cp){
 
 // ═══ TABS ════════════════════════════════════════════════════════════════════
 const TABS=['dashboard','portfolio','transactions','performance','report','simulator'];
-function switchTab(n){TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===n);document.querySelectorAll('nav button')[TABS.indexOf(t)].classList.toggle('active',t===n);});renderTab(n);}
+function switchTab(n){closeDrawer();TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===n);document.querySelectorAll('nav button')[TABS.indexOf(t)].classList.toggle('active',t===n);});renderTab(n);}
 function curTab(){return TABS.find(t=>document.getElementById('tab-'+t).classList.contains('active'))||'dashboard';}
 function renderTab(n){if(n==='dashboard')rdash();if(n==='portfolio'){rport();}if(n==='transactions')rtx();if(n==='performance')rperf();if(n==='report')rrep();if(n==='simulator')initSim();}
 
@@ -1262,7 +1272,7 @@ function initPortPills(){
     {k:'1d',l:'1G'},{k:'1w',l:'1S'},{k:'1m',l:'1M'},
     {k:'3m',l:'3M'},{k:'ytd',l:'YTD'},{k:'1y',l:'1A'},{k:'max',l:'Max'}
   ];
-  bar.innerHTML='<span style="font-size:11px;color:#7a90a8;margin-right:4px">Rendimento:</span>'+
+  bar.innerHTML=''+
     pills.map(function(p){
       var isAct=p.k===_portPeriod;
       return '<button style="display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;transition:all .15s;'+(isAct?'background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;':'')+'" onclick="setPortPeriod(\''+p.k+'\')" data-k="'+p.k+'">'+p.l+'</button>';
@@ -1341,36 +1351,47 @@ function rport(){
   try{ tbody.innerHTML=cp.map(p=>{
   var gainColor=p.gainPct>=0?'var(--green)':'var(--red)';
   return `<tr onclick="openDrawer('${p.id}')" style="cursor:pointer">
-    <td style="padding:10px 8px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <div>
-          <div style="font-weight:600;font-size:13px;line-height:1.3">${esc(p.name)}</div>
+    <td style="padding:8px 6px">
+      <div style="display:flex;align-items:center;gap:8px">
+
+        <!-- COL 1: nome + ticker (25%) -->
+        <div style="flex:0 0 auto;width:35%;min-width:0">
+          <div style="font-weight:600;font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</div>
           <span style="font-size:10px;color:var(--text-muted);background:var(--surface3);padding:2px 5px;border-radius:4px;display:inline-block;margin-top:3px">${dt(p.ticker)||''}</span>
         </div>
-        <div style="text-align:right;flex-shrink:0">
+
+        <!-- COL 2: sparkline (centro) -->
+        <div style="flex:1;min-width:60px;max-width:90px">
+          ${PC[p.ticker]&&PC[p.ticker].timestamps?'<canvas id="spark-'+p.id+'" width="80" height="36" style="display:block;width:100%;opacity:0.3"></canvas>':''}
+        </div>
+
+        <!-- COL 3: dati (destra, 4 righe) -->
+        <div style="flex:0 0 auto;text-align:right;min-width:90px">
+          <!-- Riga 1: valore totale -->
           <div style="font-weight:800;font-size:15px;color:var(--accent)">${p.currentVal>0?fEur(p.currentVal):'—'}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${p.currentPrice>0?fEur(p.currentPrice):''}</div>
-          ${PC[p.ticker]&&PC[p.ticker].timestamps?'<canvas id="spark-'+p.id+'" width="80" height="28" style="display:block;margin-top:4px;opacity:0.3"></canvas>':''} 
+          <!-- Riga 2: gain% o rendimento periodo -->
           ${(function(){
-            // Mostra gain% in base al periodo selezionato
             var pr=null;
             if(_portPeriod==='cur'||_portPeriod==='max'){
-              // Attuale/Max: gain% dal prezzo medio di carico
               return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
             } else {
-              // Periodo: rendimento price-return del periodo
               try{pr=getPortPeriodReturn(p.ticker);}catch(e){}
               if(pr===null||isNaN(pr))return p.totalCost>0?'<div style="font-size:12px;font-weight:700;color:'+(p.gainPct>=0?'var(--green)':'var(--red)')+'">'+fPct(p.gainPct)+'</div>':'';
               return '<div style="font-size:12px;font-weight:700;color:'+(pr>=0?'var(--green)':'var(--red)')+'">'+PORT_PERIODS[_portPeriod].label+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';
             }
           })()}
-          <div style="font-size:12px;font-weight:700;color:${gainColor};margin-top:2px">${p.totalCost>0?fPct(p.gainPct):'—'}</div>
-          ${(function(){try{if(_portPeriod==='cur'||!p.ticker)return '';var pr=getPortPeriodReturn(p.ticker);if(pr===null||isNaN(pr))return '';var lbl=PORT_PERIODS[_portPeriod]?PORT_PERIODS[_portPeriod].label:_portPeriod;return '<div style="font-size:10px;color:'+(pr>=0?'var(--green)':'var(--red)')+';margin-top:1px">'+lbl+': '+(pr>=0?'+':'')+pr.toFixed(2)+'%</div>';}catch(e){return '';}})()}
+          <!-- Riga 3: PMC → prezzo attuale -->
+          ${p.avgCost>0&&p.currentPrice>0?'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">PMC '+fEur(p.avgCost)+' → '+fEur(p.currentPrice)+'</div>':''}
+          <!-- Riga 4: rendimento periodo (solo se non già mostrato sopra) -->
+          ${(function(){
+            if(_portPeriod==='cur'||_portPeriod==='max') return '';
+            return ''; // periodo già in riga 2
+          })()}
         </div>
+
       </div>
     </td>
-  </tr>`;
-}).join('');
+  </tr>`;}).join('');
 }catch(e){console.error('[rport] Errore template:',e);tbody.innerHTML='';}
   // Disegna sparkline
   setTimeout(function(){cp.forEach(function(p){if(PC[p.ticker])drawSparkline('spark-'+p.id,p.ticker);});},50);
@@ -1419,10 +1440,10 @@ function rThematic(cp,tv){
 }
 async function loadPerfData(){
   const btn=document.getElementById('btn-load-perf');const status=document.getElementById('perf-status');
-  const positions=S.positions.filter(p=>p.ticker);if(!positions.length){toast('Nessun ticker','err');return;}
-  btn.disabled=true;let loaded=0,failed=[];
+  const positions=S.positions.filter(p=>p.ticker);if(!positions.length){if(btn)btn.disabled=false;return;}
+  if(btn)btn.disabled=true;let loaded=0,failed=[];
   for(const pos of positions){
-    status.innerHTML=`<span class="spinner"></span>${loaded+1}/${positions.length}: ${dt(pos.ticker)}…`;
+    if(status)status.innerHTML=`<span class="spinner"></span>${loaded+1}/${positions.length}: ${dt(pos.ticker)}…`;
     try{
       console.log('[PerfLoad] Carico storico per '+pos.ticker+'...');
       const data=await fetchYChartWithFallback(pos.ticker,'2y',pos.isin);
@@ -1435,9 +1456,13 @@ async function loadPerfData(){
   }
   saveS();
   const failMsg=failed.length?` · Non trovati: ${failed.join(', ')}`:'';
-  status.innerHTML=`✓ Aggiornato alle ${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}${failMsg}`;
+  if(status)status.innerHTML=`✓ Aggiornato alle ${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}${failMsg}`;
   perfLastLoaded=Date.now();savePCToStorage();
-  rperf();btn.disabled=false;
+  rperf();
+  // Aggiorna anche dashboard e portafoglio con i nuovi dati storici
+  if(typeof rdash==='function')rdash();
+  if(typeof rport==='function')rport();
+  if(btn)btn.disabled=false;
 }
 
 
@@ -1593,7 +1618,7 @@ var ETF_DB = [
   {name:'iShares Digitalisation',isin:'IE00BYZK4552',cat:'Tematico Tech',ter:0.40,
    tickers:{scalable:'DGTL.DE',trade_republic:'DGTL.DE',degiro:'DGTL.AS',fineco:'DGTL.MI',iwbank:'DGTL.MI',ibkr:'DGTL.L',custom:'DGTL.L'}},
   {name:'VanEck Quantum Computing',isin:'IE0005E5A897',cat:'Tematico Tech',ter:0.49,
-   tickers:{scalable:'VQCT.DE',trade_republic:'VQCT.DE',degiro:'VQCT.DE',fineco:'QNTM.MI',iwbank:'QNTM.MI',ibkr:'QNTM.L',custom:'QNTM.L'}},
+   tickers:{scalable:'QNTM.L',trade_republic:'QNTM.L',degiro:'VQCT.DE',fineco:'QNTM.MI',iwbank:'QNTM.MI',ibkr:'QNTM.L',custom:'QNTM.L'}},
   {name:'iShares Automation & Robotics',isin:'IE00BYZK4669',cat:'Tematico Tech',ter:0.40,
    tickers:{scalable:'RBOT.DE',trade_republic:'RBOT.DE',degiro:'RBOT.AS',fineco:'RBOT.MI',iwbank:'RBOT.MI',ibkr:'RBOT.L',custom:'RBOT.L'}},
   {name:'L&G Cyber Security',isin:'IE00BYPLS672',cat:'Tematico Tech',ter:0.75,
@@ -1613,14 +1638,14 @@ var ETF_DB = [
    tickers:{scalable:'VDTY.DE',trade_republic:'VDTY.DE',degiro:'VDTY.AS',fineco:'VDTY.MI',iwbank:'VDTY.MI',ibkr:'VDTY.L',custom:'VDTY.L'}},
   // ── Materie Prime ─────────────────────────────────────────────────────────
   {name:'iShares Physical Gold ETC',isin:'IE00B4ND3602',cat:'Materie Prime',ter:0.12,
-   tickers:{scalable:'IGLN.DE',trade_republic:'IGLN.DE',degiro:'IGLN.AS',fineco:'SGLN.MI',iwbank:'SGLN.MI',ibkr:'SGLN.L',custom:'SGLN.L'}},
+   tickers:{scalable:'SGLN.L',trade_republic:'SGLN.L',degiro:'IGLN.AS',fineco:'PPFB.MI',iwbank:'PPFB.MI',ibkr:'SGLN.L',custom:'SGLN.L'}},
   {name:'Invesco Physical Gold ETC',isin:'IE00B579F325',cat:'Materie Prime',ter:0.12,
    tickers:{scalable:'8PSG.DE',trade_republic:'8PSG.DE',degiro:'8PSG.DE',fineco:'8PSG.MI',iwbank:'8PSG.MI',ibkr:'SGLD.L',custom:'SGLD.L'}},
   {name:'iShares Diversified Commodity Swap',isin:'IE00BDFL4P12',cat:'Materie Prime',ter:0.19,
    tickers:{scalable:'ICOM.DE',trade_republic:'ICOM.DE',degiro:'ICOM.AS',fineco:'ICOM.MI',iwbank:'ICOM.MI',ibkr:'ICOM.L',custom:'ICOM.L'}},
   // ── Crypto ETP ─────────────────────────────────────────────────────────────
   {name:'21Shares Bitcoin Core ETP',isin:'CH1199067674',cat:'Crypto',ter:0.21,
-   tickers:{scalable:'CBTC.DE',trade_republic:'CBTC.DE',degiro:'CBTC.DE',fineco:'CBTC.MI',iwbank:'CBTC.MI',ibkr:'CBTC.SW',custom:'CBTC.SW'}},
+   tickers:{scalable:'CBTC.SW',trade_republic:'CBTC.SW',degiro:'CBTC.SW',fineco:'CBTC.SW',iwbank:'CBTC.SW',ibkr:'CBTC.SW',custom:'CBTC.SW'}},
   {name:'21Shares Ethereum ETP',isin:'CH0454664026',cat:'Crypto',ter:0.21,
    tickers:{scalable:'AETH.DE',trade_republic:'AETH.DE',degiro:'AETH.DE',fineco:'AETH.MI',iwbank:'AETH.MI',ibkr:'AETH.SW',custom:'AETH.SW'}},
   // ── Immobiliare ────────────────────────────────────────────────────────────
@@ -1696,6 +1721,105 @@ function getETFTicker(etf){
   return etf.tickers[broker_id]||etf.tickers['custom']||'';
 }
 
+
+
+// ═══ RICERCA ETF IN TRANSAZIONI ══════════════════════════════════════════════
+function txEtfSearch(val){
+  var sugg=document.getElementById('tx-etf-suggestions');
+  if(!sugg)return;
+  if(!val||val.length<2){sugg.style.display='none';return;}
+  var results=searchETF(val,S.broker||'scalable');
+  if(!results.length){sugg.style.display='none';return;}
+  sugg.style.display='block';
+  sugg.innerHTML=results.map(function(e){
+    var ticker=getETFTicker(e);
+    // Controlla se già in portafoglio
+    var inPortfolio=S.positions.find(function(p){return p.isin===e.isin||(p.ticker&&(p.ticker===ticker||p.ticker===e.isin));});
+    var badge=inPortfolio
+      ? '<span style="font-size:10px;background:rgba(74,222,158,0.15);color:#4ade9e;padding:1px 6px;border-radius:4px;margin-left:4px">già in portafoglio</span>'
+      : '<span style="font-size:10px;background:rgba(232,184,75,0.1);color:#e8b84b;padding:1px 6px;border-radius:4px;margin-left:4px">nuovo</span>';
+    return '<div onclick="txEtfSelect(\''+e.isin+'\')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05)"'+
+      ' onmouseenter="this.style.background=\'rgba(232,184,75,0.06)\'" onmouseleave="this.style.background=\'\'">' +
+      '<div style="display:flex;align-items:center;gap:6px">'+
+        '<span style="font-weight:600;font-size:13px;color:#e8e9ea">'+e.name+'</span>'+badge+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-top:3px">'+
+        '<span style="font-size:11px;color:#e8b84b;background:rgba(232,184,75,0.1);padding:1px 6px;border-radius:4px">'+ticker+'</span>'+
+        '<span style="font-size:11px;color:#4a5568">'+e.isin+'</span>'+
+        '<span style="font-size:11px;color:#4a5568">TER '+e.ter+'%</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function txEtfSelect(isin){
+  var e=ETF_DB.find(function(x){return x.isin===isin;});
+  if(!e)return;
+  var ticker=getETFTicker(e);
+  // Chiudi suggerimenti
+  var sugg=document.getElementById('tx-etf-suggestions');
+  if(sugg)sugg.style.display='none';
+  var search=document.getElementById('tx-etf-search');
+  if(search)search.value='';
+
+  // Controlla se la posizione esiste già
+  var existing=S.positions.find(function(p){
+    return p.isin===isin||(p.ticker&&(p.ticker===ticker||p.ticker===e.isin));
+  });
+
+  if(existing){
+    // Posizione già esistente: apri direttamente il modal acquisto
+    openModal('transaction');
+    // Pre-seleziona la posizione
+    setTimeout(function(){
+      var sel=document.getElementById('tx-pos');
+      if(sel){
+        for(var i=0;i<sel.options.length;i++){
+          if(sel.options[i].value===existing.id){sel.selectedIndex=i;break;}
+        }
+      }
+    },100);
+  } else {
+    // Nuova posizione: aggiungila e poi apri il form acquisto
+    var newPos={
+      id:'dp'+Date.now(),
+      name:e.name,
+      ticker:ticker,
+      isin:e.isin,
+      assetClass:e.cat,
+      region:'',
+      sector:'',
+      currentPrice:0,
+      priceCur:'EUR',
+      priceUpdatedAt:null,
+      tickerWarn:false,
+      countryComp:null,
+      sectorComp:null
+    };
+    S.positions.push(newPos);
+    saveS();
+    toast('✓ '+e.name+' aggiunto al portafoglio','ok');
+    openModal('transaction');
+    setTimeout(function(){
+      var sel=document.getElementById('tx-pos');
+      if(sel){
+        for(var i=0;i<sel.options.length;i++){
+          if(sel.options[i].value===newPos.id){sel.selectedIndex=i;break;}
+        }
+      }
+      rport();
+    },150);
+  }
+}
+
+// Chiudi suggerimenti se si clicca fuori
+document.addEventListener('click',function(e){
+  var sugg=document.getElementById('tx-etf-suggestions');
+  var search=document.getElementById('tx-etf-search');
+  if(sugg&&search&&!sugg.contains(e.target)&&e.target!==search){
+    sugg.style.display='none';
+  }
+});
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
 function etfSearchInput(val){
@@ -1778,17 +1902,22 @@ function ensureISINs(){
 
 // ═══ ISIN MAP per JustETF fallback ═══════════════════════════════════════════
 var ISIN_MAP = {
-  'SWDA.L':  'IE00B4L5Y983',
-  'SEMA.L':  'IE00B4L5Y696',
-  'MEUD.PA': 'LU1681043599',
-  'XAIX.DE': 'IE00BGV5VN51',
-  'SGLN.L':  'IE00B4ND3602',
-  'XEON.DE': 'LU0290358497',
-  'QNTM.L':  'IE0005E5A897',
-  'VQTM.DE': 'IE0005E5A897',
-  'CH1199067674.SG': 'CH1199067674',
-  'LYQ6.DE': 'LU2421926404',
-  'EM1015':  'LU2421926404'
+  'SWDA.L':  'IE00B4L5Y983', 'SWDA': 'IE00B4L5Y983',
+  'SEMA.L':  'IE00B4L5Y696', 'SEMA': 'IE00B4L5Y696',
+  'MEUD.PA': 'LU1681043599', 'MEUD': 'LU1681043599',
+  'XAIX.DE': 'IE00BGV5VN51', 'XAIX': 'IE00BGV5VN51',
+  'SGLN.L':  'IE00B4ND3602', 'SGLN': 'IE00B4ND3602',
+  'XEON.DE': 'LU0290358497', 'XEON': 'LU0290358497',
+  'QNTM.L':  'IE0005E5A897', 'QNTM': 'IE0005E5A897', 'VQCT.DE': 'IE0005E5A897',
+  'VQTM.DE': 'IE0005E5A897', 'VQCT.DE': 'IE0005E5A897',
+  'CH1199067674.SG': 'CH1199067674', 'CBTC.SW': 'CH1199067674', 'CH1199067674': 'CH1199067674', 'CBTC.DE': 'CH1199067674',
+  'LYQ6.DE': 'LU2421926404', 'EM1015': 'LU2421926404',
+  'IE00B4L5Y983': 'IE00B4L5Y983',
+  'IE00B4L5Y696': 'IE00B4L5Y696',
+  'IE00BGV5VN51': 'IE00BGV5VN51',
+  'IE00B4ND3602': 'IE00B4ND3602',
+  'IE0005E5A897': 'IE0005E5A897',
+  'CH1199067674': 'CH1199067674'
 };
 
 // Fetch prezzo corrente da JustETF tramite proxy CORS
@@ -1856,9 +1985,8 @@ async function fetchViaWorker(ticker, range) {
 }
 
 async function fetchYChart(ticker,range,isin){
-  // Usa ticker broker da ISIN se disponibile
-  var rawTicker=getTickerForBroker?getTickerForBroker(isin||'',ticker):ticker;
-  const yticker=typeof yTicker!=='undefined'?yTicker(rawTicker):rawTicker;
+  // USA SEMPRE IL TICKER ORIGINALE della posizione
+  const yticker=typeof yTicker!=='undefined'?yTicker(ticker):ticker;
   // 1. Cloudflare Worker (fonte primaria se configurato)
   if(WORKER_URL){
     try{
@@ -1925,14 +2053,23 @@ async function updateAllPrices(){
   const wt=S.positions.filter(p=>p.ticker);if(!wt.length){toast('Nessun ticker','err');return;}
   const btn=document.getElementById('btn-upd');const st=document.getElementById('price-upd-status');
   btn.disabled=true;let upd=0,fail=[];
-  for(const pos of wt){
-    st.textContent='Aggiornamento '+dt(pos.ticker)+'… ('+(upd+fail.length+1)+'/'+wt.length+')';
-    try{
-      const res=await fetchSinglePrice(pos.ticker, pos.isin);
-      S.positions=S.positions.map(p=>p.id===pos.id?{...p,currentPrice:res.price,priceCur:'EUR',priceOrigCur:res.rawCur,priceUpdatedAt:new Date().toISOString()}:p);
-      upd++;
-    }catch(e){fail.push(pos.ticker);}
-  }
+  st.textContent='Aggiornamento prezzi ('+wt.length+' strumenti)…';
+  // Fetch parallelo per velocizzare
+  const results=await Promise.allSettled(wt.map(pos=>fetchSinglePrice(pos.ticker, pos.isin).then(res=>({pos,res})).catch(e=>({pos,err:e}))));
+  results.forEach(function(r){
+    if(r.status==='fulfilled'&&r.value&&r.value.res){
+      const pos=r.value.pos,res=r.value.res;
+      try{
+        S.positions=S.positions.map(p=>p.id===pos.id?{...p,currentPrice:res.price,priceCur:'EUR',priceOrigCur:res.rawCur,priceUpdatedAt:new Date().toISOString()}:p);
+        upd++;
+      }catch(e){fail.push(pos.ticker);}
+    } else if(r.status==='fulfilled'&&r.value&&r.value.err){
+      fail.push(r.value.pos.ticker);
+    } else if(r.status==='rejected'){
+      fail.push('?');
+    }
+  });
+  // dummy for loop removed
   saveS();
   try{
     // Mostra sezioni dati storici se PC ha dati (anche stale)
@@ -2458,6 +2595,42 @@ function openDrawer(posId){
         '<div style="font-size:13px;font-weight:700;color:#e8b84b;white-space:nowrap;margin-left:8px">'+fEur(tot)+'</div>'+
       '</div>';
     }).join('');
+    // ── Migliore e peggiore tranche ─────────────────────────────────────────
+    var trancheHtml='';
+    if(txs.length>1&&cp.currentPrice>0){
+      var tranches=txs.map(function(t){
+        var shares=parseNum(t.shares);
+        var price=parseNum(t.price);
+        var fees=parseNum(t.fees)||0;
+        var pmc=(price*shares+fees)/shares; // prezzo medio per quella tranche
+        var ret=pmc>0?(cp.currentPrice-pmc)/pmc*100:null;
+        var d=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'2-digit'}):'—';
+        return{d:d,pmc:pmc,ret:ret,tot:parseNum(t.shares)*parseNum(t.price)+fees};
+      }).filter(function(t){return t.ret!==null;});
+
+      if(tranches.length>1){
+        tranches.sort(function(a,b){return b.ret-a.ret;});
+        var best=tranches[0];
+        var worst=tranches[tranches.length-1];
+        trancheHtml='<div style="margin-bottom:16px">'+
+          '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Tranche</div>'+
+          '<div style="display:flex;gap:8px">'+
+            '<div style="flex:1;background:#161e2e;border-radius:8px;padding:10px 12px;border-left:3px solid #4ade9e">'+
+              '<div style="font-size:9px;color:#4ade9e;font-weight:700;text-transform:uppercase;margin-bottom:4px">🏆 Migliore</div>'+
+              '<div style="font-size:11px;color:#e8e9ea">'+best.d+'</div>'+
+              '<div style="font-size:11px;color:#7a90a8;margin-top:2px">PMC '+fEur(best.pmc)+'</div>'+
+              '<div style="font-size:14px;font-weight:700;color:#4ade9e;margin-top:4px">+'+(best.ret).toFixed(2)+'%</div>'+
+            '</div>'+
+            '<div style="flex:1;background:#161e2e;border-radius:8px;padding:10px 12px;border-left:3px solid #f87171">'+
+              '<div style="font-size:9px;color:#f87171;font-weight:700;text-transform:uppercase;margin-bottom:4px">📉 Peggiore</div>'+
+              '<div style="font-size:11px;color:#e8e9ea">'+worst.d+'</div>'+
+              '<div style="font-size:11px;color:#7a90a8;margin-top:2px">PMC '+fEur(worst.pmc)+'</div>'+
+              '<div style="font-size:14px;font-weight:700;color:#f87171;margin-top:4px">'+(worst.ret>=0?'+':'')+worst.ret.toFixed(2)+'%</div>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      }
+    }
     txHtml='<div style="margin-bottom:14px">'+
       '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Storico Acquisti ('+txs.length+')</div>'+
       txRows+'</div>';
@@ -2468,7 +2641,7 @@ function openDrawer(posId){
     <button class="btn btn-primary" style="flex:1;justify-content:center;min-width:130px" onclick="closeDrawer();switchTab('transactions');setTimeout(()=>{openModal('transaction');document.getElementById('tx-pos').value='${posId}'},80)">+ Aggiungi Acquisto</button>
   </div>
   <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="closeDrawer();switchTab('portfolio');setTimeout(()=>editPos('${posId}'),80)">✏️ Modifica Strumento</button>`;
-  document.getElementById('drw-bd').innerHTML=priceHero+miniChart+stats+compHtml+txHtml+actions;
+  document.getElementById('drw-bd').innerHTML=priceHero+miniChart+stats+compHtml+trancheHtml+txHtml+actions;
   var drwEl=document.getElementById('drw');drwEl.style.transform='translateX(0)';
   document.getElementById('drw-ov').classList.add('open');
   document.body.style.overflow='hidden';
@@ -2895,6 +3068,76 @@ function rHeatmap(cp,tv){
   el.innerHTML=h;
 }
 
+
+// ═══ PERIODO SELEZIONATO IN RENDIMENTI PER PERIODO ═══════════════════════════
+var _perTablePeriod = '1y'; // default 1A
+
+function initPerTablePills(){
+  var bar=document.getElementById('per-period-bar');if(!bar)return;
+  var pills=[
+    {k:'1w',l:'1S'},{k:'1m',l:'1M'},{k:'3m',l:'3M'},
+    {k:'ytd',l:'YTD'},{k:'1y',l:'1A'},{k:'3y',l:'3A'},{k:'5y',l:'5A'},{k:'max',l:'Max'}
+  ];
+  var B='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;white-space:nowrap;';
+  var A='background:rgba(232,184,75,0.15);border-color:#e8b84b;color:#e8b84b;';
+  bar.innerHTML=pills.map(function(p){
+    var isAct=p.k===_perTablePeriod;
+    return '<button style="'+B+(isAct?A:'')+'" data-per="'+p.k+'">'+p.l+'</button>';
+  }).join('');
+  bar.onclick=function(e){
+    var btn=e.target.closest('button[data-per]');if(!btn)return;
+    _perTablePeriod=btn.getAttribute('data-per');
+    bar.querySelectorAll('button[data-per]').forEach(function(b){
+      b.style.cssText=B+(b.getAttribute('data-per')===_perTablePeriod?A:'');
+    });
+    renderPerTableSimple();
+  };
+}
+
+function renderPerTableSimple(){
+  var el=document.getElementById('per-table');if(!el)return;
+  var cp=computeAll().filter(function(p){return p.currentVal>0;});
+  var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0;});
+  if(!pos.length){
+    el.innerHTML='<p style="color:#7a90a8;font-size:13px;padding:8px">Carica i dati con ↺ Forza ricarica.</p>';
+    return;
+  }
+  var per={k:_perTablePeriod,d:_perTablePeriod==='max'?99999:_perTablePeriod==='ytd'?null:
+    _perTablePeriod==='5y'?1825:_perTablePeriod==='3y'?1095:_perTablePeriod==='1y'?365:
+    _perTablePeriod==='3m'?90:_perTablePeriod==='1m'?30:7};
+
+  function getVal(ticker){
+    if(_perTablePeriod==='ytd') return calcYTD(PC[ticker]);
+    if(_perTablePeriod==='max') return calcR(PC[ticker],Math.round((PC[ticker].timestamps[PC[ticker].timestamps.length-1]-PC[ticker].timestamps[0])/86400));
+    return calcR(PC[ticker],per.d);
+  }
+
+  var rows=pos.map(function(p){
+    var v=getVal(p.ticker);
+    var col=v===null?'#4a5568':v>=0?'#4ade9e':'#f87171';
+    var txt=v===null?'N/D':(v>=0?'+':'')+v.toFixed(2)+'%';
+    var shortName=(p.name||p.ticker).replace(/iShares Core |iShares |Amundi Core |Amundi |Xtrackers |VanEck |UCITS ETF.*$/gi,'').trim();
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.05)">'+
+      '<div><div style="font-size:13px;color:#e8e9ea;font-weight:500">'+shortName+'</div>'+
+      '<div style="font-size:10px;color:#4a5568;margin-top:1px">'+p.ticker+'</div></div>'+
+      '<div style="font-size:14px;font-weight:700;color:'+col+'">'+txt+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Portafoglio aggregato
+  var wsum=0,wval=0;
+  pos.forEach(function(p){var v=getVal(p.ticker);if(v!==null&&p.currentVal>0){wsum+=v*p.currentVal;wval+=p.currentVal;}});
+  var portVal=wval>0?wsum/wval:null;
+  var portCol=portVal===null?'#4a5568':portVal>=0?'#4ade9e':'#f87171';
+  var portTxt=portVal===null?'N/D':(portVal>=0?'+':'')+portVal.toFixed(2)+'%';
+  rows+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-top:2px solid rgba(232,184,75,0.2);margin-top:4px">'+
+    '<div style="font-size:13px;color:#e8b84b;font-weight:700">📊 Portafoglio</div>'+
+    '<div style="font-size:14px;font-weight:700;color:'+portCol+'">'+portTxt+'</div>'+
+  '</div>';
+
+  el.innerHTML='<div>'+rows+'</div>';
+}
+
 function rPeriodTable(cp,tv){
   var el=document.getElementById('per-table');if(!el)return;
   var pos=cp.filter(function(p){return p.ticker&&PC[p.ticker]&&PC[p.ticker].timestamps&&PC[p.ticker].timestamps.length>0;});
@@ -3002,7 +3245,7 @@ function rperf(){
   var hasPCNow=Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;});
   console.log('[rperf] hasPCNow='+hasPCNow+' PC keys='+Object.keys(PC).length);
   if(hasPCNow){
-    rHeatmap(cp,tv);rPeriodTable(cp,tv);
+    rHeatmap(cp,tv);initPerTablePills();renderPerTableSimple();
     initPeriodPills();renderPeriodChart(selPeriod);
   } else {
     var hmEl=document.getElementById('hm-inner');
@@ -4144,8 +4387,21 @@ function toggleAllPos(){
 
 // ─── Ticker aliases: ticker originale → ticker Yahoo Finance che funziona ────
 var TICKER_ALIASES={
-  'CH1199067674.SG':'CBTC.SW',  // 21Shares Bitcoin Core ETP → SIX Swiss (Yahoo lo conosce)
-  'LYQ6.DE':'LYQ6.DE',          // Amundi Euro Govt Bond 10-15Y (invariato, ma esplicito)
+  // Alias necessari per Yahoo Finance
+  'CH1199067674.SG':'CBTC.SW',  // Bitcoin → SIX Swiss
+  'CH1199067674':'CBTC.SW',     // Bitcoin senza .SG
+  'CBTC.DE':'CBTC.SW',          // Bitcoin XETRA → SIX Swiss
+  'LYQ6.DE':'LYQ6.DE',
+  // Ticker senza suffisso exchange → versione con suffisso
+  'SWDA':'SWDA.L',
+  'SEMA':'SEMA.L',
+  'MEUD':'MEUD.PA',
+  'XAIX':'XAIX.DE',
+  'SGLN':'SGLN.L',
+  'XEON':'XEON.DE',
+  'QNTM':'QNTM.L',
+  'LYQ6':'LYQ6.DE',
+  'EM1015':'LYQ6.DE',
 };
 function yTicker(t){return TICKER_ALIASES[t]||t;}
 
@@ -4271,17 +4527,62 @@ if(sessionStorage.getItem('pac_just_restored')==='1'){
 // Forza ordine dashboard con perf prima
 dashSectionOrder=['perf','health','kpis','target','charts','table'];
 localStorage.setItem('pac_dash_sections',JSON.stringify(dashSectionOrder));
-loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
-// Auto-carica dati storici in background se non presenti
+
+// ─── Chart.js defaults globali ───────────────────────────────────────────────
+if(typeof Chart !== 'undefined'){
+  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15,21,32,0.92)';
+  Chart.defaults.plugins.tooltip.borderColor = '#263040';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.padding = 8;
+  Chart.defaults.plugins.tooltip.titleFont = {size:11, weight:'600'};
+  Chart.defaults.plugins.tooltip.bodyFont = {size:11};
+  Chart.defaults.plugins.tooltip.titleColor = '#e8b84b';
+  Chart.defaults.plugins.tooltip.bodyColor = '#e8e9ea';
+  Chart.defaults.plugins.tooltip.cornerRadius = 6;
+  Chart.defaults.plugins.tooltip.displayColors = true;
+  Chart.defaults.plugins.tooltip.boxWidth = 8;
+  Chart.defaults.plugins.tooltip.boxHeight = 8;
+}
+
+
+// ─── Nascondi tooltip Chart.js su touchend ───────────────────────────────────
+document.addEventListener('touchend', function(){
+  setTimeout(function(){
+    Object.values(Chart.instances||{}).forEach(function(chart){
+      if(chart&&chart.tooltip){
+        chart.tooltip.setActiveElements([],{x:0,y:0});
+        chart.update('none');
+      }
+    });
+  }, 1500); // scompare dopo 1.5 secondi dal rilascio
+}, {passive:true});
+
+
+// ─── Chiudi drawer su cambio tab ─────────────────────────────────────────────
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-tab]');
+  if(btn) closeDrawer();
+}, true); // capture phase
+
+loadS();ensureTickerCorrections();ensureISINs();
+// Carica dati storici da cache PRIMA di disegnare i grafici
+loadPCFromStorage();
+rdash();initPortPills();checkOnboarding();
+// Auto-carica dati storici in background se non presenti o vecchi (>24h)
 setTimeout(function(){
   var hasPCData=Object.keys(PC).some(function(k){
     return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;
   });
-  if(!hasPCData&&S.positions&&S.positions.some(function(p){return p.ticker;})){
-    console.log('[PACcamelo] Auto-caricamento dati storici in background...');
+  var pcTs=null;
+  try{pcTs=JSON.parse(localStorage.getItem('pac_pc_v8')||'{}').ts;}catch(e){}
+  var pcStale=!pcTs||(Date.now()/1000-pcTs)>86400; // >24h
+
+  if((!hasPCData||pcStale)&&S.positions&&S.positions.some(function(p){return p.ticker;})){
+    if(!hasPCData)console.log('[PACcamelo] Dati storici mancanti, caricamento…');
+    else console.log('[PACcamelo] Dati storici obsoleti (>24h), aggiornamento…');
     loadPerfData();
   }
-}, 3000);
+}, 4000);
 
 updateDB();initTips();initTabDrag();autoRefreshCheck();setTimeout(function(){updateBottomNav('dashboard');},100);
 // Auto-load performance data on startup
@@ -4299,11 +4600,58 @@ setTimeout(function(){
     loadPerfData();
   }
 },800);
-// Auto-aggiorna prezzi se mancanti o obsoleti (>4h)
+// ─── STALE WHILE REVALIDATE ─────────────────────────────────────────────────
+// Mostra subito i dati salvati, aggiorna silenziosamente in background
 setTimeout(function(){
+  var now=Date.now();
+  var STALE_MS=4*60*60*1000; // 4 ore
   var missing=S.positions.some(function(p){return p.ticker&&!p.priceUpdatedAt;});
-  if(missing){console.log('[PACcamelo] Prezzi mancanti, aggiornamento…');updateAllPrices();}
-},1500);
+  var stale=S.positions.some(function(p){
+    if(!p.ticker||!p.priceUpdatedAt)return false;
+    return (now-new Date(p.priceUpdatedAt).getTime())>STALE_MS;
+  });
+  if(missing||stale){
+    if(missing)console.log('[PACcamelo] Prezzi mancanti, aggiornamento silenzioso…');
+    if(stale)console.log('[PACcamelo] Prezzi obsoleti (>4h), aggiornamento silenzioso…');
+    // Aggiorna senza mostrare spinner — UI rimane visibile con dati vecchi
+    updateAllPricesSilent();
+  }
+},2000);
+
+async function updateAllPricesSilent(){
+  var wt=S.positions.filter(function(p){return p.ticker;});
+  if(!wt.length)return;
+  try{
+    var results=await Promise.allSettled(wt.map(function(pos){
+      return fetchSinglePrice(pos.ticker,pos.isin)
+        .then(function(res){return{pos:pos,res:res};})
+        .catch(function(e){return{pos:pos,err:e};});
+    }));
+    var updated=false;
+    results.forEach(function(r){
+      if(r.status==='fulfilled'&&r.value&&r.value.res){
+        var pos=r.value.pos,res=r.value.res;
+        S.positions=S.positions.map(function(p){
+          return p.id===pos.id?Object.assign({},p,{
+            currentPrice:res.price,
+            priceCur:'EUR',
+            priceOrigCur:res.rawCur,
+            priceUpdatedAt:new Date().toISOString()
+          }):p;
+        });
+        updated=true;
+      }
+    });
+    if(updated){
+      saveS();
+      // Aggiorna solo la UI del tab corrente (silenzioso)
+      var ct=curTab();
+      if(ct==='dashboard')rdash();
+      else if(ct==='portfolio')rport();
+      console.log('[PACcamelo] Prezzi aggiornati silenziosamente');
+    }
+  }catch(e){console.warn('[PACcamelo] Aggiornamento silenzioso fallito:',e);}
+}
 // ═══ MOBILE: PERFORMANCE ACCORDION ══════════════════════════════════════════
 function initPerfAccordion(){
   if(window.innerWidth>700)return;
