@@ -826,8 +826,9 @@ function updateBottomNav(tab){
         ⚠️ I rendimenti passati non predicono il futuro. Questo strumento è educativo, non consulenza finanziaria.
       </div>
     </div>
-    <div id="ideal-proj-table">  </div>
-</div>
+    <div id="ideal-proj-table"></div>
+    <button onclick="iGoCompare()" style="width:100%;margin-top:16px;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:15px;border-radius:12px;cursor:pointer">🔍 Confronta col tuo portafoglio reale</button>
+  </div>
 
 </main>
 
@@ -2091,8 +2092,11 @@ var HIST_RETURNS = {
 };
 
 function iCalcProj(){
-  var monthly=parseFloat(document.getElementById('proj-monthly')?.value)||(IDEAL_STATE.monthlyEquiv||200);
-  var years=parseInt(document.getElementById('proj-years')?.value)||IDEAL_STATE.horizon||20;
+  // Priorità: IDEAL_STATE (da questionario) > input field > default
+  var monthly=IDEAL_STATE.monthlyEquiv||IDEAL_STATE.monthlyAmount||
+    parseFloat(document.getElementById('proj-monthly')?.value)||200;
+  var years=IDEAL_STATE.horizon||
+    parseInt(document.getElementById('proj-years')?.value)||20;
   var pm=document.getElementById('proj-monthly');if(pm)pm.value=monthly;
   var py=document.getElementById('proj-years');if(py)py.value=years;
   var months=years*12,w=IDEAL_STATE.weights,invested=monthly*months;
@@ -2437,9 +2441,10 @@ function iGoCompare(){
   saveIdealState();
   switchTab('portfolio');
   setTimeout(function(){
+    renderPortCompare(); // Forza rendering immediato
     var el=document.getElementById('port-compare-section');
-    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
-  },300);
+    if(el){el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'start'});}
+  },400);
 }
 
 var PROXY_DEFS={glob:[{ticker:'^GSPC',w:0.65},{ticker:'EFA',w:0.35}],em:[{ticker:'EEM',w:1.0}],eu:[{ticker:'EFA',w:1.0}],bondlt:[{ticker:'TLT',w:1.0}],bondct:[{ticker:'SHY',w:1.0}],gold:[{ticker:'GLD',w:1.0}],comm:[{ticker:'GSG',w:1.0}],cash:[{ticker:'^IRX',w:1.0}],fx:[{ticker:'EURUSD=X',w:1.0}]};
@@ -2545,9 +2550,19 @@ function renderPortCompare(){
   var section=document.getElementById('port-compare-section');
   var body=document.getElementById('port-compare-body');
   if(!section||!body)return;
-  if(!IDEAL_STATE.profile||!IDEAL_STATE.weights){section.style.display='none';return;}
+  if(!IDEAL_STATE.profile||!IDEAL_STATE.weights){
+    section.style.display='block';
+    body.innerHTML='<div style="color:#7a90a8;font-size:13px;padding:16px;text-align:center">'+
+      'Completa prima il questionario nel tab <strong style="color:#e8b84b">Portafoglio Ideale</strong> →</div>';
+    return;
+  }
   var real=getRealAllocation();
-  if(!real){section.style.display='none';return;}
+  if(!real){
+    section.style.display='block';
+    body.innerHTML='<div style="color:#7a90a8;font-size:13px;padding:16px;text-align:center">'+
+      'Aggiorna i prezzi per vedere il confronto (clicca <strong style="color:#e8b84b">Aggiorna Prezzi</strong>).</div>';
+    return;
+  }
   section.style.display='block';
   var rows=ASSET_CATS.map(function(c){
     var rw=Math.round(real[c.k]||0),iw=IDEAL_STATE.weights[c.k]||0;
@@ -5718,6 +5733,12 @@ function switchSettingsTab(tab){
 .proj-input-group{flex:1;min-width:120px}
 .proj-input-group label{font-size:11px;color:#7a90a8;display:block;margin-bottom:4px}
 .proj-input-group input{width:100%;padding:8px 12px;background:#0f1520;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;box-sizing:border-box}
+
+
+/* Nascondi freccette input number */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
 
 </style>
 
