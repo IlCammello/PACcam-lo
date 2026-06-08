@@ -1440,10 +1440,10 @@ function rThematic(cp,tv){
 }
 async function loadPerfData(){
   const btn=document.getElementById('btn-load-perf');const status=document.getElementById('perf-status');
-  const positions=S.positions.filter(p=>p.ticker);if(!positions.length){toast('Nessun ticker','err');return;}
-  btn.disabled=true;let loaded=0,failed=[];
+  const positions=S.positions.filter(p=>p.ticker);if(!positions.length){if(btn)btn.disabled=false;return;}
+  if(btn)btn.disabled=true;let loaded=0,failed=[];
   for(const pos of positions){
-    status.innerHTML=`<span class="spinner"></span>${loaded+1}/${positions.length}: ${dt(pos.ticker)}…`;
+    if(status)status.innerHTML=`<span class="spinner"></span>${loaded+1}/${positions.length}: ${dt(pos.ticker)}…`;
     try{
       console.log('[PerfLoad] Carico storico per '+pos.ticker+'...');
       const data=await fetchYChartWithFallback(pos.ticker,'2y',pos.isin);
@@ -1456,9 +1456,13 @@ async function loadPerfData(){
   }
   saveS();
   const failMsg=failed.length?` · Non trovati: ${failed.join(', ')}`:'';
-  status.innerHTML=`✓ Aggiornato alle ${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}${failMsg}`;
+  if(status)status.innerHTML=`✓ Aggiornato alle ${new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}${failMsg}`;
   perfLastLoaded=Date.now();savePCToStorage();
-  rperf();btn.disabled=false;
+  rperf();
+  // Aggiorna anche dashboard e portafoglio con i nuovi dati storici
+  if(typeof rdash==='function')rdash();
+  if(typeof rport==='function')rport();
+  if(btn)btn.disabled=false;
 }
 
 
@@ -4332,8 +4336,6 @@ function clearPCStorage(){localStorage.removeItem('pac_pc_v8');}
     const age=Math.floor((Date.now()/1000)-ts);
     const ageStr=age<3600?Math.floor(age/60)+'min':(age/3600).toFixed(1)+'h';
     console.log('[PACcamelo] PC restored from storage ('+Object.keys(PC).length+' ticker, age '+ageStr+')');
-    // Aggiorna subito dashboard e portfolio con dati storici caricati
-    setTimeout(function(){if(typeof rdash==='function')rdash();},100);
     // Trigger rperf refresh once UI is ready
     setTimeout(function(){if(curTab()==='performance')rperf();},200);
   }
@@ -4562,7 +4564,10 @@ document.addEventListener('click', function(e){
   if(btn) closeDrawer();
 }, true); // capture phase
 
-loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
+loadS();ensureTickerCorrections();ensureISINs();
+// Carica dati storici da cache PRIMA di disegnare i grafici
+loadPCFromStorage();
+rdash();initPortPills();checkOnboarding();
 // Auto-carica dati storici in background se non presenti o vecchi (>24h)
 setTimeout(function(){
   var hasPCData=Object.keys(PC).some(function(k){
