@@ -1381,7 +1381,7 @@ function rport(){
             }
           })()}
           <!-- Riga 3: PMC → prezzo attuale -->
-          ${p.avgCost>0&&p.currentPrice>0?'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">'+fEur(p.avgCost)+' → '+fEur(p.currentPrice)+'</div>':''}
+          ${p.avgCost>0&&p.currentPrice>0?'<div style="font-size:10px;color:var(--text-muted);margin-top:2px">PMC '+fEur(p.avgCost)+' → '+fEur(p.currentPrice)+'</div>':''}
           <!-- Riga 4: rendimento periodo (solo se non già mostrato sopra) -->
           ${(function(){
             if(_portPeriod==='cur'||_portPeriod==='max') return '';
@@ -2591,6 +2591,42 @@ function openDrawer(posId){
         '<div style="font-size:13px;font-weight:700;color:#e8b84b;white-space:nowrap;margin-left:8px">'+fEur(tot)+'</div>'+
       '</div>';
     }).join('');
+    // ── Migliore e peggiore tranche ─────────────────────────────────────────
+    var trancheHtml='';
+    if(txs.length>1&&cp.currentPrice>0){
+      var tranches=txs.map(function(t){
+        var shares=parseNum(t.shares);
+        var price=parseNum(t.price);
+        var fees=parseNum(t.fees)||0;
+        var pmc=(price*shares+fees)/shares; // prezzo medio per quella tranche
+        var ret=pmc>0?(cp.currentPrice-pmc)/pmc*100:null;
+        var d=t.date?new Date(t.date+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'2-digit'}):'—';
+        return{d:d,pmc:pmc,ret:ret,tot:parseNum(t.shares)*parseNum(t.price)+fees};
+      }).filter(function(t){return t.ret!==null;});
+
+      if(tranches.length>1){
+        tranches.sort(function(a,b){return b.ret-a.ret;});
+        var best=tranches[0];
+        var worst=tranches[tranches.length-1];
+        trancheHtml='<div style="margin-bottom:16px">'+
+          '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Tranche</div>'+
+          '<div style="display:flex;gap:8px">'+
+            '<div style="flex:1;background:#161e2e;border-radius:8px;padding:10px 12px;border-left:3px solid #4ade9e">'+
+              '<div style="font-size:9px;color:#4ade9e;font-weight:700;text-transform:uppercase;margin-bottom:4px">🏆 Migliore</div>'+
+              '<div style="font-size:11px;color:#e8e9ea">'+best.d+'</div>'+
+              '<div style="font-size:11px;color:#7a90a8;margin-top:2px">PMC '+fEur(best.pmc)+'</div>'+
+              '<div style="font-size:14px;font-weight:700;color:#4ade9e;margin-top:4px">+'+(best.ret).toFixed(2)+'%</div>'+
+            '</div>'+
+            '<div style="flex:1;background:#161e2e;border-radius:8px;padding:10px 12px;border-left:3px solid #f87171">'+
+              '<div style="font-size:9px;color:#f87171;font-weight:700;text-transform:uppercase;margin-bottom:4px">📉 Peggiore</div>'+
+              '<div style="font-size:11px;color:#e8e9ea">'+worst.d+'</div>'+
+              '<div style="font-size:11px;color:#7a90a8;margin-top:2px">PMC '+fEur(worst.pmc)+'</div>'+
+              '<div style="font-size:14px;font-weight:700;color:#f87171;margin-top:4px">'+(worst.ret>=0?'+':'')+worst.ret.toFixed(2)+'%</div>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      }
+    }
     txHtml='<div style="margin-bottom:14px">'+
       '<div style="font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Storico Acquisti ('+txs.length+')</div>'+
       txRows+'</div>';
