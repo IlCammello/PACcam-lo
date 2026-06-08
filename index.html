@@ -4553,6 +4553,13 @@ document.addEventListener('touchend', function(){
   }, 1500); // scompare dopo 1.5 secondi dal rilascio
 }, {passive:true});
 
+
+// ─── Chiudi drawer su cambio tab ─────────────────────────────────────────────
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('button[data-tab]');
+  if(btn) closeDrawer();
+}, true); // capture phase
+
 loadS();ensureTickerCorrections();ensureISINs();rdash();initPortPills();checkOnboarding();
 // Auto-carica dati storici in background se non presenti o vecchi (>24h)
 setTimeout(function(){
