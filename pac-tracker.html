@@ -517,7 +517,7 @@ nav button.dragging{opacity:.4}
     <button data-tab="performance" onclick="switchTab('performance')" draggable="true">📈 Performance</button>
     <button data-tab="report" onclick="switchTab('report')" draggable="true">Report PAC</button>
     <button data-tab="transactions" onclick="switchTab('transactions')" draggable="true">Transazioni</button>
-    <button data-tab="simulator" onclick="switchTab('simulator')" draggable="true">📊 Simulatore</button>
+    <button data-tab="simulator" onclick="switchTab('simulator')" draggable="true">🎯 Portafoglio Ideale</button>
   </nav>
   <div class="header-actions">
     <!-- Drive button: sempre visibile in header -->
@@ -1820,6 +1820,323 @@ document.addEventListener('click',function(e){
     sugg.style.display='none';
   }
 });
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// PORTAFOGLIO IDEALE
+// ════════════════════════════════════════════════════════════════════════════
+
+var IDEAL_STATE = {
+  q1: null, q2: null, q3: null,
+  profile: null,
+  weights: {glob:60, em:15, eu:0, bond:15, gold:10, cash:0, btc:0},
+  template: 'custom'
+};
+
+// Categorie asset con colori
+var ASSET_CATS = [
+  {k:'glob', label:'Azionario Globale',    color:'#4a90d9', ex:'MSCI World / ACWI'},
+  {k:'em',   label:'Mercati Emergenti',    color:'#e8b84b', ex:'MSCI Emerging Markets'},
+  {k:'eu',   label:'Azionario Europa',     color:'#7c6fcd', ex:'Stoxx Europe 600'},
+  {k:'bond', label:'Obbligazionario',      color:'#4ade9e', ex:'Gov. Bond EUR'},
+  {k:'gold', label:'Oro / Materie Prime',  color:'#fbbf24', ex:'Gold ETC'},
+  {k:'cash', label:'Monetario / Cash',     color:'#94a3b8', ex:'Overnight Rate Swap'},
+  {k:'btc',  label:'Bitcoin / Crypto',     color:'#f97316', ex:'Bitcoin ETP'},
+];
+
+// Portafogli famosi
+var IDEAL_TEMPLATES = [
+  {id:'suggest',  icon:'🎯', name:'Suggerito',       desc:'Dal tuo profilo',
+   w:{glob:60,em:15,eu:0,bond:15,gold:10,cash:0,btc:0}},
+  {id:'gb',       icon:'🦋', name:'Golden Butterfly', desc:'Tyler Portfolio',
+   w:{glob:40,em:0,eu:0,bond:40,gold:20,cash:0,btc:0}},
+  {id:'as',       icon:'🌦️', name:'All Seasons',     desc:'Ray Dalio',
+   w:{glob:30,em:0,eu:0,bond:55,gold:7,cash:8,btc:0}},
+  {id:'pp',       icon:'🔒', name:'Permanent',        desc:'Harry Browne',
+   w:{glob:25,em:0,eu:0,bond:25,gold:25,cash:25,btc:0}},
+  {id:'3f',       icon:'📊', name:'Three-Fund',       desc:'Bogleheads',
+   w:{glob:60,em:20,eu:0,bond:20,gold:0,cash:0,btc:0}},
+  {id:'custom',   icon:'✏️', name:'Personalizzato',   desc:'Imposta tu i pesi',
+   w:null},
+];
+
+// Profili in base al punteggio
+var IDEAL_PROFILES = [
+  {id:'cons',  name:'Conservativo',  score:[3,6],  color:'#4ade9e',
+   desc:'Priorità alla protezione del capitale. Volatilità bassa, rendimenti moderati.',
+   w:{glob:20,em:5,eu:0,bond:55,gold:15,cash:5,btc:0}},
+  {id:'mod',   name:'Moderato',      score:[7,9],  color:'#4a90d9',
+   desc:'Bilanciamento tra crescita e stabilità. Adatto a chi vuole crescere senza eccessi.',
+   w:{glob:40,em:10,eu:0,bond:35,gold:10,cash:5,btc:0}},
+  {id:'bil',   name:'Bilanciato',    score:[10,12],color:'#7c6fcd',
+   desc:'Crescita con un cuscino difensivo. Il profilo più diffuso tra gli investitori di lungo periodo.',
+   w:{glob:55,em:15,eu:0,bond:20,gold:10,cash:0,btc:0}},
+  {id:'grow',  name:'Crescita',      score:[13,14],color:'#e8b84b',
+   desc:'Orientato alla massimizzazione del rendimento nel lungo periodo. Alta tolleranza alla volatilità.',
+   w:{glob:70,em:20,eu:0,bond:5,gold:5,cash:0,btc:0}},
+  {id:'aggr',  name:'Aggressivo',    score:[15,15],color:'#f97316',
+   desc:'Massima esposizione azionaria. Solo per chi ha un orizzonte lunghissimo e nervi saldi.',
+   w:{glob:75,em:20,eu:0,bond:0,gold:5,cash:0,btc:0}},
+];
+
+function iSelectQ(q, score, el){
+  IDEAL_STATE['q'+q] = score;
+  el.closest('.quiz-opts').querySelectorAll('.quiz-opt').forEach(function(b){b.classList.remove('selected');});
+  el.classList.add('selected');
+  var allAnswered = IDEAL_STATE.q1!==null && IDEAL_STATE.q2!==null && IDEAL_STATE.q3!==null;
+  var btn = document.getElementById('ideal-quiz-btn');
+  if(btn){btn.disabled=!allAnswered; btn.style.opacity=allAnswered?'1':'0.5';}
+}
+
+function iCalcProfile(){
+  var score = (IDEAL_STATE.q1||0) + (IDEAL_STATE.q2||0) + (IDEAL_STATE.q3||0);
+  var profile = IDEAL_PROFILES.find(function(p){return score>=p.score[0]&&score<=p.score[1];}) || IDEAL_PROFILES[2];
+  IDEAL_STATE.profile = profile;
+  // Imposta pesi suggeriti
+  IDEAL_STATE.weights = Object.assign({},profile.w);
+  IDEAL_STATE.template = 'suggest';
+  // Aggiorna template "suggerito"
+  IDEAL_TEMPLATES[0].w = Object.assign({},profile.w);
+  iGoStep('alloc');
+}
+
+function iGoStep(step){
+  ['quiz','alloc','proj'].forEach(function(s){
+    var el=document.getElementById('ideal-'+s);
+    if(el)el.style.display=s===step?'':'none';
+    var btn=document.querySelector('.ideal-step-btn[data-istep="'+s+'"]');
+    if(btn){btn.classList.toggle('active',s===step);}
+  });
+  if(step==='alloc') iRenderAlloc();
+  if(step==='proj') iCalcProj();
+  // Abilita step successivi
+  if(step==='alloc'||step==='proj'){
+    var b=document.querySelector('.ideal-step-btn[data-istep="alloc"]');
+    if(b)b.disabled=false;
+  }
+  if(step==='proj'){
+    var b2=document.querySelector('.ideal-step-btn[data-istep="proj"]');
+    if(b2)b2.disabled=false;
+  }
+}
+
+function iRenderAlloc(){
+  // Profile card
+  var p=IDEAL_STATE.profile||IDEAL_PROFILES[2];
+  var pc=document.getElementById('ideal-profile-card');
+  if(pc){
+    pc.innerHTML='<div class="profile-card" style="background:linear-gradient(135deg,'+p.color+'18,'+p.color+'06);border:1px solid '+p.color+'40;margin-bottom:20px">'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'+
+        '<div style="font-size:32px">'+({cons:'🛡️',mod:'⚖️',bil:'📈',grow:'🚀',aggr:'⚡'}[p.id]||'📊')+'</div>'+
+        '<div><div style="font-size:20px;font-weight:800;color:'+p.color+'">'+p.name+'</div>'+
+        '<div style="font-size:12px;color:#7a90a8;margin-top:2px">'+p.desc+'</div></div>'+
+      '</div>'+
+      iRenderBars(p.w)+
+    '</div>';
+  }
+  // Templates
+  var tg=document.getElementById('ideal-templates');
+  if(tg){
+    tg.innerHTML=IDEAL_TEMPLATES.map(function(t){
+      var sel=t.id===IDEAL_STATE.template;
+      return '<div class="tmpl-card'+(sel?' selected':'')+'" onclick="iSelectTemplate(\''+t.id+'\')">'+
+        '<div class="tmpl-card-icon">'+t.icon+'</div>'+
+        '<div class="tmpl-card-name">'+t.name+'</div>'+
+        '<div class="tmpl-card-desc">'+t.desc+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  // Sliders
+  iRenderSliders();
+}
+
+function iRenderBars(w){
+  return ASSET_CATS.filter(function(c){return (w[c.k]||0)>0;}).map(function(c){
+    var v=w[c.k]||0;
+    return '<div class="alloc-bar-wrap">'+
+      '<div class="alloc-bar-label"><span style="color:#e8e9ea;font-size:11px">'+c.label+'</span><span style="color:'+c.color+';font-weight:700;font-size:11px">'+v+'%</span></div>'+
+      '<div class="alloc-bar-track"><div class="alloc-bar-fill" style="width:'+v+'%;background:'+c.color+'"></div></div>'+
+    '</div>';
+  }).join('');
+}
+
+function iSelectTemplate(id){
+  IDEAL_STATE.template=id;
+  var t=IDEAL_TEMPLATES.find(function(x){return x.id===id;});
+  if(t&&t.w) IDEAL_STATE.weights=Object.assign({},t.w);
+  iRenderAlloc();
+}
+
+function iRenderSliders(){
+  var sl=document.getElementById('ideal-sliders');if(!sl)return;
+  sl.innerHTML=ASSET_CATS.map(function(c){
+    var v=IDEAL_STATE.weights[c.k]||0;
+    return '<div class="alloc-slider-row">'+
+      '<label style="color:'+c.color+'">'+c.label+'<br><span style="font-size:10px;color:#4a5568">'+c.ex+'</span></label>'+
+      '<input type="range" min="0" max="100" value="'+v+'" step="5" oninput="iUpdateWeight(\''+c.k+'\',this.value)" style="accent-color:'+c.color+'">'+
+      '<span class="alloc-slider-val" id="sw-'+c.k+'">'+v+'%</span>'+
+    '</div>';
+  }).join('');
+  iUpdateTotal();
+}
+
+function iUpdateWeight(k,v){
+  IDEAL_STATE.weights[k]=parseInt(v)||0;
+  IDEAL_STATE.template='custom';
+  var sp=document.getElementById('sw-'+k);if(sp)sp.textContent=v+'%';
+  iUpdateTotal();
+}
+
+function iUpdateTotal(){
+  var tot=Object.values(IDEAL_STATE.weights).reduce(function(a,b){return a+b;},0);
+  var el=document.getElementById('ideal-alloc-total');
+  if(el){
+    var ok=tot===100;
+    el.style.background=ok?'rgba(74,222,158,0.1)':'rgba(248,113,113,0.1)';
+    el.style.color=ok?'#4ade9e':'#f87171';
+    el.textContent=ok?'✓ Totale: 100% — Perfetto!':'Totale: '+tot+'% — '+(tot<100?'mancano '+(100-tot)+'%':'eccedono '+(tot-100)+'%');
+  }
+}
+
+// ─── PROIEZIONI BOOTSTRAP ─────────────────────────────────────────────────────
+// Rendimenti storici annui per categoria (stime conservative da dati storici)
+var HIST_RETURNS = {
+  glob: {mean:0.085, std:0.16},  // MSCI World
+  em:   {mean:0.075, std:0.22},  // Emerging Markets
+  eu:   {mean:0.070, std:0.17},  // Stoxx Europe
+  bond: {mean:0.030, std:0.07},  // Obbligazionario EUR
+  gold: {mean:0.055, std:0.15},  // Oro
+  cash: {mean:0.020, std:0.01},  // Monetario
+  btc:  {mean:0.150, std:0.80},  // Bitcoin (molto speculativo)
+};
+
+function iCalcProj(){
+  var monthly=parseFloat(document.getElementById('proj-monthly')?.value)||200;
+  var years=parseInt(document.getElementById('proj-years')?.value)||20;
+  var months=years*12;
+  var w=IDEAL_STATE.weights;
+
+  // Rendimento atteso pesato del portafoglio
+  var meanAnn=0, varAnn=0;
+  ASSET_CATS.forEach(function(c){
+    var wt=(w[c.k]||0)/100;
+    var h=HIST_RETURNS[c.k];
+    meanAnn+=wt*h.mean;
+    varAnn+=wt*wt*h.std*h.std;
+  });
+  var stdAnn=Math.sqrt(varAnn);
+  var meanMon=meanAnn/12;
+  var stdMon=stdAnn/Math.sqrt(12);
+
+  // Simulazione Monte Carlo: 1000 percorsi
+  var N=1000, results=[];
+  for(var i=0;i<N;i++){
+    var val=0;
+    for(var m=0;m<months;m++){
+      var r=meanMon+stdMon*iRandNorm();
+      val=(val+monthly)*(1+r);
+    }
+    results.push(val);
+  }
+  results.sort(function(a,b){return a-b;});
+
+  // Percentili
+  var p10=results[Math.floor(N*0.10)];
+  var p25=results[Math.floor(N*0.25)];
+  var p50=results[Math.floor(N*0.50)];
+  var p75=results[Math.floor(N*0.75)];
+  var p90=results[Math.floor(N*0.90)];
+  var invested=monthly*months;
+
+  iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90);
+  iRenderProjTable(monthly, years, invested, p10, p25, p50, p75, p90);
+}
+
+function iRandNorm(){
+  var u=0,v=0;
+  while(u===0)u=Math.random();
+  while(v===0)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+function iRenderProjChart(months, monthly, invested, p10, p25, p50, p75, p90){
+  var ctx=document.getElementById('ideal-proj-chart');if(!ctx)return;
+  if(window._iProjChart)window._iProjChart.destroy();
+
+  // Costruisci serie mensili per ogni percentile
+  var labels=[],inv=[],s10=[],s25=[],s50=[],s75=[],s90=[];
+  var meanAnn=0,varAnn=0,w=IDEAL_STATE.weights;
+  ASSET_CATS.forEach(function(c){var wt=(w[c.k]||0)/100;var h=HIST_RETURNS[c.k];meanAnn+=wt*h.mean;varAnn+=wt*wt*h.std*h.std;});
+  var meanMon=meanAnn/12,stdMon=Math.sqrt(varAnn)/Math.sqrt(12);
+
+  var step=Math.max(1,Math.floor(months/24));
+  for(var m=0;m<=months;m+=step){
+    labels.push(m===0?'Oggi':m<12?m+'m':Math.round(m/12)+'a');
+    inv.push(monthly*m);
+    // Calcola percentili progressivi
+    var N=300,res=[];
+    for(var i=0;i<N;i++){
+      var val=0;
+      for(var mm=0;mm<m;mm++){val=(val+monthly)*(1+meanMon+stdMon*iRandNorm());}
+      res.push(val);
+    }
+    res.sort(function(a,b){return a-b;});
+    s10.push(res[Math.floor(N*0.10)]);
+    s25.push(res[Math.floor(N*0.25)]);
+    s50.push(res[Math.floor(N*0.50)]);
+    s75.push(res[Math.floor(N*0.75)]);
+    s90.push(res[Math.floor(N*0.90)]);
+  }
+
+  window._iProjChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:labels,datasets:[
+      {label:'Pessimistico (P10)',data:s10,borderColor:'#f87171',backgroundColor:'rgba(248,113,113,0.1)',fill:1,tension:.3,borderWidth:1.5,pointRadius:0},
+      {label:'P25',data:s25,borderColor:'rgba(248,113,113,0.3)',fill:false,tension:.3,borderWidth:1,pointRadius:0},
+      {label:'Mediano (P50)',data:s50,borderColor:'#e8b84b',backgroundColor:'rgba(232,184,75,0.08)',fill:false,tension:.3,borderWidth:2.5,pointRadius:0},
+      {label:'P75',data:s75,borderColor:'rgba(74,222,158,0.3)',fill:false,tension:.3,borderWidth:1,pointRadius:0},
+      {label:'Ottimistico (P90)',data:s90,borderColor:'#4ade9e',backgroundColor:'rgba(74,222,158,0.1)',fill:3,tension:.3,borderWidth:1.5,pointRadius:0},
+      {label:'Capitale versato',data:inv,borderColor:'#7a90a8',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10}},
+        tooltip:{mode:'index',intersect:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
+        y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},position:'right'}
+      }
+    }
+  });
+}
+
+function iRenderProjTable(monthly, years, invested, p10, p25, p50, p75, p90){
+  var el=document.getElementById('ideal-proj-table');if(!el)return;
+  function fmt(v){return v>=1000?(v/1000).toFixed(1)+'k€':Math.round(v)+'€';}
+  function mul(v){return '+'+((v/invested-1)*100).toFixed(0)+'%';}
+  el.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr>'+
+      ['Scenario','Valore finale','Multiplo sul versato'].map(function(h){
+        return '<th style="padding:8px;text-align:left;color:#7a90a8;border-bottom:1px solid #263040;white-space:nowrap">'+h+'</th>';
+      }).join('')+
+    '</tr></thead><tbody>'+
+    [['😎 Ottimistico (P90)',p90,'#4ade9e'],['📈 Buono (P75)',p75,'#86efac'],['📊 Mediano (P50)',p50,'#e8b84b'],['😐 Moderato (P25)',p25,'#f59e0b'],['😟 Pessimistico (P10)',p10,'#f87171']].map(function(r){
+      return '<tr><td style="padding:8px;color:'+r[2]+'">'+r[0]+'</td><td style="padding:8px;font-weight:700;color:'+r[2]+'">'+fmt(r[1])+'</td><td style="padding:8px;color:'+r[2]+'">'+mul(r[1])+'</td></tr>';
+    }).join('')+
+    '<tr style="border-top:1px solid #263040"><td style="padding:8px;color:#7a90a8">💰 Capitale versato</td><td style="padding:8px;color:#7a90a8;font-weight:700">'+fmt(invested)+'</td><td style="padding:8px;color:#7a90a8">—</td></tr>'+
+  '</tbody></table></div>';
+}
+
+function initIdealPortfolio(){
+  // Carica stato salvato se esiste
+  try{
+    var saved=JSON.parse(localStorage.getItem('pac_ideal')||'null');
+    if(saved){IDEAL_STATE=Object.assign(IDEAL_STATE,saved);}
+  }catch(e){}
+}
+
+function saveIdealState(){
+  try{localStorage.setItem('pac_ideal',JSON.stringify(IDEAL_STATE));}catch(e){}
+}
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
 function etfSearchInput(val){
@@ -3476,7 +3793,7 @@ function _renderDashTable(cp,tv){
 
 // ═══ TAB DRAG AND DROP ════════════════════════════════════════════════════════
 let tabOrder=JSON.parse(localStorage.getItem('pac_tab_order')||'null')||[...TABS];
-const TAB_LABELS={dashboard:'Dashboard',portfolio:'Portafoglio',transactions:'Transazioni',performance:'📈 Performance',report:'Report PAC',simulator:'📊 Simulatore'};
+const TAB_LABELS={dashboard:'Dashboard',portfolio:'Portafoglio',transactions:'Transazioni',performance:'📈 Performance',report:'Report PAC',simulator:'🎯 Portafoglio Ideale'};
 function saveTabOrder(){localStorage.setItem('pac_tab_order',JSON.stringify(tabOrder));}
 function initTabDrag(){
   const nav=document.getElementById('main-nav');if(!nav)return;
@@ -4564,7 +4881,7 @@ document.addEventListener('click', function(e){
   if(btn) closeDrawer();
 }, true); // capture phase
 
-loadS();ensureTickerCorrections();ensureISINs();
+loadS();ensureTickerCorrections();ensureISINs();initIdealPortfolio();
 // Carica dati storici da cache PRIMA di disegnare i grafici
 loadPCFromStorage();
 rdash();initPortPills();checkOnboarding();
@@ -4930,7 +5247,136 @@ function switchSettingsTab(tab){
 <style>
 .ob-dot{width:8px;height:8px;border-radius:50%;background:#263040;transition:all .2s}
 .ob-dot-active{background:#e8b84b;transform:scale(1.3)}
+
+/* ─── PORTAFOGLIO IDEALE ──────────────────────────────────────────────────── */
+.ideal-stepper{display:flex;gap:0;margin-bottom:24px;background:#0f1520;border-radius:12px;padding:4px}
+.ideal-step-btn{flex:1;padding:10px 8px;background:none;border:none;color:#4a5568;font-size:12px;font-weight:600;cursor:pointer;border-radius:8px;transition:all .2s;text-align:center}
+.ideal-step-btn.active{background:#161e2e;color:#e8b84b;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.ideal-step-btn.done{color:#4ade9e}
+.ideal-step-btn:disabled{opacity:.4;cursor:default}
+
+.quiz-card{background:#0f1520;border:1px solid #1e2d40;border-radius:14px;padding:22px;margin-bottom:16px}
+.quiz-q{font-size:15px;font-weight:700;color:#e8e9ea;margin-bottom:6px}
+.quiz-sub{font-size:12px;color:#4a5568;margin-bottom:16px}
+.quiz-opts{display:flex;flex-direction:column;gap:8px}
+.quiz-opt{padding:12px 16px;background:#161e2e;border:1px solid #263040;border-radius:10px;cursor:pointer;transition:all .2s;text-align:left;color:#7a90a8;font-size:13px;font-weight:500}
+.quiz-opt:hover{border-color:#e8b84b;color:#e8e9ea}
+.quiz-opt.selected{background:rgba(232,184,75,0.08);border-color:#e8b84b;color:#e8e9ea}
+.quiz-opt-label{font-weight:700;color:#e8b84b;margin-right:8px}
+
+.profile-card{border-radius:14px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.profile-card::before{content:'';position:absolute;inset:0;opacity:.08}
+.alloc-bar-wrap{margin-bottom:8px}
+.alloc-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.alloc-bar-track{height:6px;background:#161e2e;border-radius:3px;overflow:hidden}
+.alloc-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+
+.tmpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.tmpl-card{background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;text-align:center}
+.tmpl-card:hover{border-color:#e8b84b}
+.tmpl-card.selected{background:rgba(232,184,75,0.08);border-color:#e8b84b}
+.tmpl-card-icon{font-size:24px;margin-bottom:6px}
+.tmpl-card-name{font-size:11px;font-weight:700;color:#e8e9ea}
+.tmpl-card-desc{font-size:10px;color:#4a5568;margin-top:2px}
+
+.alloc-slider-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.alloc-slider-row label{font-size:12px;color:#7a90a8;width:160px;flex-shrink:0}
+.alloc-slider-row input[type=range]{flex:1;accent-color:#e8b84b;height:4px}
+.alloc-slider-val{font-size:13px;font-weight:700;color:#e8b84b;width:36px;text-align:right}
+.alloc-total{font-size:13px;font-weight:700;padding:10px 14px;border-radius:8px;margin-top:8px;text-align:center}
+
+.proj-input-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.proj-input-group{flex:1;min-width:120px}
+.proj-input-group label{font-size:11px;color:#7a90a8;display:block;margin-bottom:4px}
+.proj-input-group input{width:100%;padding:8px 12px;background:#0f1520;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;box-sizing:border-box}
+
 </style>
 
 </body>
-</html>
+</html<div id="tab-simulator" class="tab-content">
+  <!-- Stepper -->
+  <div class="ideal-stepper">
+    <button class="ideal-step-btn active" data-istep="quiz" onclick="iGoStep('quiz')">1 · Questionario</button>
+    <button class="ideal-step-btn" data-istep="alloc" onclick="iGoStep('alloc')" disabled>2 · Allocazione</button>
+    <button class="ideal-step-btn" data-istep="proj" onclick="iGoStep('proj')" disabled>3 · Proiezioni</button>
+  </div>
+
+  <!-- Step 1: Questionario -->
+  <div id="ideal-quiz">
+    <div class="quiz-card">
+      <div class="quiz-q">⏱️ Qual è il tuo orizzonte temporale?</div>
+      <div class="quiz-sub">Per quanti anni pensi di mantenere questo PAC?</div>
+      <div class="quiz-opts" id="q1-opts">
+        <button class="quiz-opt" onclick="iSelectQ(1,1,this)"><span class="quiz-opt-label">A</span>3 anni — Breve termine</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,2,this)"><span class="quiz-opt-label">B</span>5 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,3,this)"><span class="quiz-opt-label">C</span>10 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,4,this)"><span class="quiz-opt-label">D</span>20 anni</button>
+        <button class="quiz-opt" onclick="iSelectQ(1,5,this)"><span class="quiz-opt-label">E</span>30 anni — Lunghissimo termine</button>
+      </div>
+    </div>
+
+    <div class="quiz-card">
+      <div class="quiz-q">📉 È il 2008. Il tuo portafoglio ha perso il 50% in 6 mesi. Cosa fai?</div>
+      <div class="quiz-sub">Sii onesto — la reazione istintiva conta più di quella razionale.</div>
+      <div class="quiz-opts" id="q2-opts">
+        <button class="quiz-opt" onclick="iSelectQ(2,1,this)"><span class="quiz-opt-label">A</span>Vendo tutto. Non riesco a sopportare queste perdite.</button>
+        <button class="quiz-opt" onclick="iSelectQ(2,2,this)"><span class="quiz-opt-label">B</span>Vendo una parte per limitare i danni.</button>
+        <button class="quiz-opt" onclick="iSelectQ(2,3,this)"><span class="quiz-opt-label">C</span>Non faccio nulla. Aspetto che passi.</button>
+        <button class="quiz-opt" onclick="iSelectQ(2,4,this)"><span class="quiz-opt-label">D</span>Continuo il PAC normalmente.</button>
+        <button class="quiz-opt" onclick="iSelectQ(2,5,this)"><span class="quiz-opt-label">E</span>Aumento i versamenti. È un'occasione di acquisto.</button>
+      </div>
+    </div>
+
+    <div class="quiz-card">
+      <div class="quiz-q">📅 A quanti anni dalla fine del tuo orizzonte sei?</div>
+      <div class="quiz-sub">Chi è vicino alla fine è più esposto al rischio di sequenza — un crash prima del ritiro può essere devastante.</div>
+      <div class="quiz-opts" id="q3-opts">
+        <button class="quiz-opt" onclick="iSelectQ(3,1,this)"><span class="quiz-opt-label">A</span>Meno di 2 anni — Sto per utilizzare il capitale</button>
+        <button class="quiz-opt" onclick="iSelectQ(3,3,this)"><span class="quiz-opt-label">B</span>2–5 anni — Fase di avvicinamento</button>
+        <button class="quiz-opt" onclick="iSelectQ(3,5,this)"><span class="quiz-opt-label">C</span>Più di 5 anni — Ho ancora molto tempo</button>
+      </div>
+    </div>
+
+    <button id="ideal-quiz-btn" onclick="iCalcProfile()" disabled
+      style="width:100%;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer;opacity:.5;transition:all .2s">
+      Calcola il mio profilo →
+    </button>
+  </div>
+
+  <!-- Step 2: Allocazione -->
+  <div id="ideal-alloc" style="display:none">
+    <div id="ideal-profile-card"></div>
+    <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Portafogli di riferimento</div>
+    <div class="tmpl-grid" id="ideal-templates"></div>
+    <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Personalizza i pesi</div>
+    <div id="ideal-sliders"></div>
+    <div id="ideal-alloc-total" class="alloc-total"></div>
+    <button onclick="iGoStep('proj')"
+      style="width:100%;margin-top:16px;padding:14px;background:#e8b84b;color:#0a0f1a;font-weight:800;font-size:15px;border:none;border-radius:12px;cursor:pointer">
+      Vedi le proiezioni →
+    </button>
+  </div>
+
+  <!-- Step 3: Proiezioni -->
+  <div id="ideal-proj" style="display:none">
+    <div class="proj-input-row">
+      <div class="proj-input-group">
+        <label>Versamento mensile (€)</label>
+        <input type="number" id="proj-monthly" value="200" min="10" oninput="iCalcProj()">
+      </div>
+      <div class="proj-input-group">
+        <label>Anni di investimento</label>
+        <input type="number" id="proj-years" value="20" min="1" max="40" oninput="iCalcProj()">
+      </div>
+    </div>
+    <div id="ideal-proj-chart-wrap" style="height:260px;position:relative;margin-bottom:20px">
+      <canvas id="ideal-proj-chart"></canvas>
+    </div>
+    <div id="ideal-proj-table"></div>
+    <div style="font-size:10px;color:#4a5568;margin-top:16px;line-height:1.5">
+      ⚠️ Le proiezioni sono simulate su rendimenti storici a scopo educativo e non costituiscono consulenza finanziaria. I rendimenti passati non garantiscono rendimenti futuri. Prima di investire consulta un consulente finanziario abilitato (OCF).
+    </div>
+  </div>
+</div>
+
+>
