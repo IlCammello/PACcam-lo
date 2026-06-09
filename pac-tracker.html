@@ -636,6 +636,7 @@ function updateBottomNav(tab){
     </div>
   
     <div id="port-compare-section" style="margin-top:24px;display:none">
+      <div id="compare-period-bar" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:10px;padding-bottom:4px;scrollbar-width:none"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em">Confronto vs Portafoglio Ideale</div>
         <button onclick="switchTab('simulator')" style="font-size:11px;color:#e8b84b;background:none;border:none;cursor:pointer">Modifica →</button>
@@ -742,7 +743,43 @@ function updateBottomNav(tab){
   </div>
 
   <div id="tab-simulator" class="tab-content">
-  <!-- Stepper -->
+  <!-- Entry screen -->
+  <div id="ideal-entry" style="display:block">
+    <div style="text-align:center;padding:8px 0 24px">
+      <div style="font-size:22px;font-weight:800;color:#e8e9ea;margin-bottom:6px">Costruisci il tuo portafoglio ideale</div>
+      <div style="font-size:14px;color:#7a90a8">Come vuoi procedere?</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:480px;margin:0 auto">
+      <button onclick="iShowGuided()" style="padding:20px;background:#161e2e;border:1px solid #263040;border-radius:14px;cursor:pointer;text-align:left;transition:border-color .2s" onmouseenter="this.style.borderColor='#e8b84b'" onmouseleave="this.style.borderColor='#263040'">
+        <div style="font-size:22px;margin-bottom:8px">🎯</div>
+        <div style="font-size:15px;font-weight:700;color:#e8e9ea">Costruisci il tuo profilo</div>
+        <div style="font-size:12px;color:#7a90a8;margin-top:4px">Ti guido con 2 domande per trovare l allocazione giusta per te</div>
+      </button>
+      <button onclick="iShowExplore()" style="padding:20px;background:#161e2e;border:1px solid #263040;border-radius:14px;cursor:pointer;text-align:left;transition:border-color .2s" onmouseenter="this.style.borderColor='#4ade9e'" onmouseleave="this.style.borderColor='#263040'">
+        <div style="font-size:22px;margin-bottom:8px">📚</div>
+        <div style="font-size:15px;font-weight:700;color:#e8e9ea">Esplora i portafogli famosi</div>
+        <div style="font-size:12px;color:#7a90a8;margin-top:4px">Golden Butterfly, All Seasons, Permanent Portfolio… confrontali con dati reali</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Sezione Portafogli Famosi -->
+  <div id="ideal-explore" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <button onclick="iShowEntry()" style="background:none;border:none;color:#7a90a8;cursor:pointer;font-size:20px;padding:0">←</button>
+      <div style="font-size:17px;font-weight:800;color:#e8e9ea">Portafogli famosi</div>
+    </div>
+    <div id="explore-cards" style="margin-bottom:20px"></div>
+    <div id="explore-compare-wrap" style="display:none">
+      <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Confronto backtest</div>
+      <div style="height:220px;position:relative;margin-bottom:12px"><canvas id="ch-explore"></canvas></div>
+      <div style="font-size:10px;color:#4a5568;margin-bottom:16px">Backtest su dati storici reali. Versamento ipotetico €200/mese.</div>
+    <div id="explore-metrics" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- Stepper (guidato) -->
+  <div id="ideal-stepper-wrap" style="display:none">
   <div class="ideal-stepper">
     <button class="ideal-step-btn active" data-istep="quiz" onclick="iGoStep('quiz')">1 · Questionario</button>
     <button class="ideal-step-btn" data-istep="alloc" onclick="iGoStep('alloc')" disabled>2 · Allocazione</button>
@@ -829,6 +866,24 @@ function updateBottomNav(tab){
       <canvas id="ideal-proj-chart"></canvas>
     </div>
     <div style="background:#0f1520;border:1px solid #1e2d40;border-radius:10px;padding:14px;margin-bottom:16px">
+      <!-- Tabella anno per anno -->
+      <div style="margin-bottom:16px">
+        <div id="yearly-toggle" onclick="
+          var el=document.getElementById('ideal-yearly-table');
+          el.style.display=el.style.display==='none'?'block':'none';
+          if(el.style.display!=='none'){
+            var r=typeof calcAllocReturns==='function'?calcAllocReturns(IDEAL_STATE.weights):null;
+            if(r)renderYearlyTable(r,(IDEAL_STATE.horizon||20)*12,IDEAL_STATE.monthlyEquiv||IDEAL_STATE.monthlyAmount||200);
+          }"
+          style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 14px;background:#161e2e;border-radius:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#e8e9ea">📋 Tabella anno per anno</div>
+            <div style="font-size:11px;color:#7a90a8;margin-top:2px">Valore, profitto e SWR mensile per ogni anno</div>
+          </div>
+          <div style="font-size:18px;color:#7a90a8">▾</div>
+        </div>
+        <div id="ideal-yearly-table" style="display:none;background:#0f1520;border-radius:0 0 10px 10px;border:1px solid #263040;border-top:none;padding:0 0 8px 0"></div>
+      </div>
       <div style="font-size:12px;font-weight:700;color:#e8e9ea;margin-bottom:10px">Come leggere il grafico</div>
       <div style="font-size:11px;color:#7a90a8;line-height:1.8">
         <div>🟡 <strong>Linea gialla</strong> — Scenario mediano: metà delle simulazioni è sopra, metà sotto.</div>
@@ -857,6 +912,7 @@ function updateBottomNav(tab){
     </div>
     <button onclick="iGoCompare()" style="width:100%;margin-top:16px;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:15px;border-radius:12px;cursor:pointer">🔍 Confronta col tuo portafoglio reale</button>
   </div>
+</div>
 
 </main>
 
@@ -2009,6 +2065,10 @@ function iSelectProfile(id){
 }
 
 function iGoStep(step){
+  // Assicura che stepper-wrap sia visibile
+  var sw=document.getElementById('ideal-stepper-wrap');if(sw)sw.style.display='block';
+  document.getElementById('ideal-entry').style.display='none';
+  document.getElementById('ideal-explore').style.display='none';
   ['quiz','alloc','proj'].forEach(function(s){
     var el=document.getElementById('ideal-'+s);
     if(el)el.style.display=s===step?'':'none';
@@ -2686,6 +2746,18 @@ function renderCompareChart(){
     if(btR)dR.push(Math.round(btR[i].val));
     if(btI)dI.push(Math.round(btI[i].val));
   }
+  // Barra periodi confronto
+  var maxYrs=Math.round(Math.min(realR?realR.length:9999,idealR?idealR.length:9999)/12);
+  var cmpPills=[{l:'3A',y:3},{l:'5A',y:5},{l:'10A',y:10},{l:'Max',y:0}].filter(function(p){return p.y===0||p.y<=maxYrs;});
+  var cpBar=document.getElementById('compare-period-bar');
+  if(cpBar){
+    var B='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;border:none;white-space:nowrap;margin-right:4px';
+    var A='background:rgba(232,184,75,0.15);border-color:#e8b84b!important;color:#e8b84b;border:1px solid #e8b84b';
+    var cur=window._compareYears||0;
+    cpBar.innerHTML=cmpPills.map(function(p){
+      return '<button style="'+B+(p.y===cur?';'+A:'')+'" onclick="window._compareYears='+p.y+';renderCompareChart()">'+p.l+'</button>';
+    }).join('');
+  }
   body.innerHTML=
     '<div style="display:flex;gap:10px;margin-bottom:12px">'+
       kpiCard('🔵 Portafoglio reale','#4a90d9',btR)+
@@ -2703,10 +2775,23 @@ function renderCompareChart(){
     window._chCompare=new Chart(ctx,{type:'line',
       data:{labels:labels,datasets:datasets},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10}},
-          tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}}}},
-        scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
-          y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},position:'right'}}}});
+        plugins:{
+          legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10,padding:8}},
+          tooltip:{mode:'index',intersect:false,
+            callbacks:{
+              title:function(items){return 'Anno '+Math.round(parseInt(items[0].label)/1)||items[0].label;},
+              label:function(c){return c.dataset.label.split('(')[0].trim()+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}
+            }
+          }
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8},
+            title:{display:true,text:'Anni di investimento',color:'#4a5568',font:{size:9}}},
+          y:{grid:{color:'rgba(38,48,64,.4)'},
+            ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},
+            position:'right',
+            title:{display:true,text:'Valore portafoglio',color:'#4a5568',font:{size:9}}}
+        }}});
   });
 }
 
@@ -2929,16 +3014,29 @@ function renderSequenceRisk(){
     if(window._chSeq)window._chSeq.destroy();
     window._chSeq=new Chart(ctx,{type:'line',
       data:{labels:labels,datasets:[
-        {label:'Capitale versato',data:inv,borderColor:'#4a5568',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0},
-        {label:'📈 Boom poi crash',data:sBull,borderColor:'#f97316',fill:false,tension:.3,borderWidth:2,pointRadius:0},
-        {label:'📊 Ordine storico',data:sReal,borderColor:'#e8b84b',fill:false,tension:.3,borderWidth:2.5,pointRadius:0},
-        {label:'📉 Crash poi boom',data:sBear,borderColor:'#4ade9e',fill:false,tension:.3,borderWidth:2,pointRadius:0},
+        {label:'💰 Capitale versato',data:inv,borderColor:'#94a3b8',borderDash:[5,3],fill:false,tension:0,borderWidth:1.5,pointRadius:0},
+        {label:'📈 Boom ora, crash dopo (peggiore in accumulo)',data:sBull,borderColor:'#f97316',backgroundColor:'rgba(249,115,22,0.06)',fill:false,tension:.4,borderWidth:2,pointRadius:0,borderDash:[3,2]},
+        {label:'📊 Sequenza storica reale',data:sReal,borderColor:'#e8b84b',backgroundColor:'rgba(232,184,75,0.1)',fill:false,tension:.4,borderWidth:3,pointRadius:0},
+        {label:'📉 Crash ora, boom dopo (migliore in accumulo)',data:sBear,borderColor:'#4ade9e',backgroundColor:'rgba(74,222,158,0.06)',fill:false,tension:.4,borderWidth:2,pointRadius:0},
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10}},
-          tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}}}},
-        scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
-          y:{grid:{color:'rgba(38,48,64,.5)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},position:'right'}}}});
+        plugins:{
+          legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10,padding:8}},
+          tooltip:{mode:'index',intersect:false,
+            callbacks:{
+              title:function(items){return 'Anno '+Math.round(parseInt(items[0].label)/1)||items[0].label;},
+              label:function(c){return c.dataset.label.split('(')[0].trim()+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}
+            }
+          }
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8},
+            title:{display:true,text:'Anni di investimento',color:'#4a5568',font:{size:9}}},
+          y:{grid:{color:'rgba(38,48,64,.4)'},
+            ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},
+            position:'right',
+            title:{display:true,text:'Valore portafoglio',color:'#4a5568',font:{size:9}}}
+        }}});
   });
 }
 
@@ -3289,6 +3387,278 @@ function exportPDF(){
     window.print();
     setTimeout(function(){report.style.display='none';},500);
   },200);
+}
+
+
+// ─── NAVIGAZIONE ENTRY / EXPLORE / GUIDED ────────────────────────────────────
+function iShowEntry(){
+  document.getElementById('ideal-entry').style.display='block';
+  document.getElementById('ideal-explore').style.display='none';
+  document.getElementById('ideal-stepper-wrap').style.display='none';
+}
+
+function iShowGuided(){
+  document.getElementById('ideal-entry').style.display='none';
+  document.getElementById('ideal-explore').style.display='none';
+  document.getElementById('ideal-stepper-wrap').style.display='block';
+  // Se c'è già un profilo, vai direttamente all'allocazione
+  if(IDEAL_STATE.profile)iGoStep('alloc');
+  else iGoStep('quiz');
+}
+
+function iShowExplore(){
+  document.getElementById('ideal-entry').style.display='none';
+  document.getElementById('ideal-stepper-wrap').style.display='none';
+  document.getElementById('ideal-explore').style.display='block';
+  iRenderExploreCards();
+}
+
+// ─── DATI PORTAFOGLI FAMOSI ───────────────────────────────────────────────────
+var FAMOUS_PORTFOLIOS = [
+  {
+    id:'gb', icon:'🦋', name:'Golden Butterfly',
+    author:'Tyler (Portfolio Charts)',
+    philosophy:'Progettato per prosperare in qualsiasi regime economico. Divide il capitale in 5 parti uguali: azioni large cap (crescita), azioni small cap value (sovraperformance in espansione), obbligazioni lunghe (protezione in deflazione), obbligazioni brevi (stabilità), oro (protezione da inflazione e crisi).',
+    why:'Uno dei portafogli più bilanciati in assoluto. Storica bassa volatilità con rendimenti decenti.',
+    w:{glob:20,em:0,eu:20,bondlt:20,bondct:20,gold:20,comm:0,cash:0,btc:0}
+  },
+  {
+    id:'as', icon:'🌦️', name:'All Seasons',
+    author:'Ray Dalio (Bridgewater)',
+    philosophy:'Basato sulla teoria dei "quattro regimi economici": crescita alta/bassa e inflazione alta/bassa. Ogni asset performa bene in almeno uno scenario. Le obbligazioni lunghe (40%) dominano per dare stabilità nelle fasi di deflazione o bassa crescita.',
+    why:'Progettato per non perdere mai troppo. Ideale per chi non sopporta i crolli ma vuole comunque crescita.',
+    w:{glob:30,em:0,eu:0,bondlt:40,bondct:15,gold:7,comm:8,cash:0,btc:0}
+  },
+  {
+    id:'pp', icon:'🔒', name:'Permanent Portfolio',
+    author:'Harry Browne',
+    philosophy:'Filosofia radicale: quattro asset uguali — futuro imprevedibile. Azioni per prosperita, bond per deflazione, oro per inflazione, liquidita per recessione. Semplicita massima.',
+    why:'Il portafoglio "pigro" per eccellenza. Massima diversificazione con minima complessità gestionale.',
+    w:{glob:25,em:0,eu:0,bondlt:25,bondct:0,gold:25,comm:0,cash:25,btc:0}
+  },
+  {
+    id:'3f', icon:'📊', name:'Three-Fund',
+    author:'Jack Bogle (Bogleheads)',
+    philosophy:'Il punto di partenza per qualsiasi investitore passivo. Massima diversificazione globale con soli 3 ETF: mercati sviluppati, emergenti e obbligazionario. Nessuna scommessa settoriale o geografica. La quota obbligazionaria si regola in base all eta.',
+    why:'Il portafoglio più semplice e scientificamente solido. Ottimo come base di un PAC a lungo termine.',
+    w:{glob:55,em:8,eu:0,bondlt:27,bondct:0,gold:10,comm:0,cash:0,btc:0}
+  },
+];
+
+function iRenderExploreCards(){
+  var el=document.getElementById('explore-cards');if(!el)return;
+  el.onclick=function(e){
+    var useBtn=e.target.closest('[data-use]');
+    if(useBtn){iUsePortfolio(useBtn.getAttribute('data-use'));return;}
+    var cmpBtn=e.target.closest('[data-cmp]');
+    if(cmpBtn){iToggleCompare(cmpBtn.getAttribute('data-cmp'));return;}
+  };
+
+  el.innerHTML=FAMOUS_PORTFOLIOS.map(function(p){
+    // Calcola allocazione totale azionario/obbligazionario/difensivo
+    var eq=(p.w.glob||0)+(p.w.em||0)+(p.w.eu||0);
+    var bd=(p.w.bondlt||0)+(p.w.bondct||0);
+    var def=(p.w.gold||0)+(p.w.comm||0)+(p.w.cash||0);
+
+    // Barre allocazione
+    var bars=ASSET_CATS.filter(function(c){return (p.w[c.k]||0)>0;}).map(function(c){
+      var v=p.w[c.k]||0;
+      return '<div style="margin-bottom:4px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px">'+
+          '<span style="color:#7a90a8">'+c.label+'</span>'+
+          '<span style="color:'+c.color+';font-weight:700">'+v+'%</span>'+
+        '</div>'+
+        '<div style="height:3px;background:#161e2e;border-radius:2px">'+
+          '<div style="height:3px;background:'+c.color+';border-radius:2px;width:'+v+'%"></div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    return '<div style="background:#0f1520;border:1px solid #263040;border-radius:14px;padding:18px;margin-bottom:12px">'+
+      '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">'+
+        '<div style="font-size:28px;flex-shrink:0">'+p.icon+'</div>'+
+        '<div style="flex:1">'+
+          '<div style="font-size:16px;font-weight:800;color:#e8e9ea">'+p.name+'</div>'+
+          '<div style="font-size:11px;color:#4a5568;margin-top:2px">'+p.author+'</div>'+
+          '<div style="display:flex;gap:8px;margin-top:6px">'+
+            '<span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:2px 8px;border-radius:4px">Az. '+eq+'%</span>'+
+            '<span style="font-size:10px;background:rgba(74,222,158,0.12);color:#4ade9e;padding:2px 8px;border-radius:4px">Bond '+bd+'%</span>'+
+            (def>0?'<span style="font-size:10px;background:rgba(251,191,36,0.12);color:#fbbf24;padding:2px 8px;border-radius:4px">Def. '+def+'%</span>':'')+ 
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      // Filosofia (collassabile)
+      '<details style="margin-bottom:12px">'+
+        '<summary style="font-size:12px;font-weight:700;color:#7a90a8;cursor:pointer;list-style:none">📖 Filosofia e perché funziona</summary>'+
+        '<div style="margin-top:8px;font-size:12px;color:#7a90a8;line-height:1.6">'+
+          '<div style="margin-bottom:6px">'+p.philosophy+'</div>'+
+          '<div style="color:#4ade9e;font-size:11px">✓ '+p.why+'</div>'+
+        '</div>'+
+      '</details>'+
+      // Allocazione
+      '<div style="margin-bottom:12px">'+bars+'</div>'+
+      // Bottoni
+      '<div style="display:flex;gap:8px">'+
+        '<button data-use="'+p.id+'" style="flex:2;padding:10px;background:#e8b84b;border:none;border-radius:8px;color:#0a0f1a;font-weight:800;font-size:13px;cursor:pointer">Usa questo →</button>'+
+        '<button data-cmp="'+p.id+'" id="cmp-btn-'+p.id+'" style="flex:1;padding:10px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#7a90a8;font-size:12px;cursor:pointer">+ Confronta</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  // Carica backtest se dati disponibili
+  iRenderExploreChart();
+}
+
+var _exploreSelected=new Set();
+
+function iToggleCompare(id){
+  if(_exploreSelected.has(id)){
+    _exploreSelected.delete(id);
+    var btn=document.getElementById('cmp-btn-'+id);
+    if(btn){btn.textContent='+ Confronta';btn.style.borderColor='#263040';btn.style.color='#7a90a8';}
+  } else {
+    _exploreSelected.add(id);
+    var btn=document.getElementById('cmp-btn-'+id);
+    if(btn){btn.textContent='✓ Nel confronto';btn.style.borderColor='#4ade9e';btn.style.color='#4ade9e';}
+  }
+  iRenderExploreChart();
+}
+
+function iUsePortfolio(id){
+  var p=FAMOUS_PORTFOLIOS.find(function(x){return x.id===id;});
+  if(!p)return;
+  // Trova il profilo più vicino o usa quello custom
+  IDEAL_STATE.profile={id:'custom',name:p.name,icon:p.icon,desc:p.name,detail:'',w:p.w};
+  IDEAL_STATE.weights=Object.assign({},p.w);
+  IDEAL_STATE.template=p.id;
+  IDEAL_TEMPLATES[0].w=Object.assign({},p.w);
+  if(!IDEAL_STATE.monthlyAmount)IDEAL_STATE.monthlyAmount=200;
+  if(!IDEAL_STATE.cadenza)IDEAL_STATE.cadenza=1;
+  IDEAL_STATE.monthlyEquiv=IDEAL_STATE.monthlyAmount;
+  if(!IDEAL_STATE.horizon)IDEAL_STATE.horizon=20;
+  autoSaveIdealPortfolio();
+  saveIdealState();
+  iShowGuided();
+  iGoStep('alloc');
+  toast('Portafoglio "'+p.name+'" caricato','ok');
+}
+
+function iRenderExploreChart(){
+  var wrap=document.getElementById('explore-compare-wrap');
+  if(!wrap)return;
+
+  var toShow=_exploreSelected.size>0
+    ?FAMOUS_PORTFOLIOS.filter(function(p){return _exploreSelected.has(p.id);})
+    :FAMOUS_PORTFOLIOS; // Di default mostra tutti
+
+  // Controlla se ci sono dati proxy
+  var hasData=Object.keys(PROXY_MONTHLY).some(function(k){return PROXY_MONTHLY[k]&&PROXY_MONTHLY[k].length>0;});
+  if(!hasData){
+    wrap.style.display='block';
+    var ctx=document.getElementById('ch-explore');
+    if(ctx&&ctx.parentElement)ctx.parentElement.innerHTML='<div style="color:#7a90a8;font-size:12px;padding:20px;text-align:center">Vai in <strong style="color:#e8b84b">Proiezioni</strong> per caricare i dati storici e vedere il confronto qui.</div>';
+    return;
+  }
+
+  wrap.style.display='block';
+  var monthly=200;
+  var colors=['#4a90d9','#e8b84b','#4ade9e','#f97316','#7c6fcd'];
+
+  // Calcola backtest per ogni portafoglio
+  var datasets=[];
+  var maxLen=0;
+  toShow.forEach(function(p,i){
+    var returns=calcAllocReturns(p.w);
+    if(!returns||returns.length<12)return;
+    maxLen=Math.max(maxLen,returns.length);
+    var bt=historicalBacktest(returns,monthly);
+    var step=Math.max(1,Math.floor(returns.length/24));
+    datasets.push({
+      fp:p,returns:returns,bt:bt,step:step,color:colors[i%colors.length]
+    });
+  });
+
+  if(!datasets.length){wrap.style.display='none';return;}
+
+  // Usa la lunghezza comune
+  var minLen=Math.min.apply(null,datasets.map(function(d){return d.returns.length;}));
+  var step=Math.max(1,Math.floor(minLen/24));
+  var labels=[];
+  for(var i=0;i<minLen;i+=step)labels.push(Math.round(i/12)+'a');
+
+  var inv=[];
+  for(var j=0;j<minLen;j+=step)inv.push(Math.round(monthly*(j+1)));
+
+  var chartDatasets=[{
+    label:'Capitale versato',data:inv,
+    borderColor:'#4a5568',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0
+  }];
+
+  datasets.forEach(function(d){
+    var vals=[];
+    for(var k=0;k<minLen;k+=step)vals.push(Math.round(d.bt[k]?d.bt[k].val:0));
+    chartDatasets.push({
+      label:d.fp.icon+' '+d.fp.name,data:vals,
+      borderColor:d.color,fill:false,tension:.3,borderWidth:2,pointRadius:0
+    });
+  });
+
+  var ctx=document.getElementById('ch-explore');if(!ctx)return;
+  if(window._chExplore)window._chExplore.destroy();
+  window._chExplore=new Chart(ctx,{type:'line',
+    data:{labels:labels,datasets:chartDatasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10,padding:8}},
+        tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:8}},
+        y:{grid:{color:'rgba(38,48,64,.4)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:5},position:'right'}
+      }
+    }
+  });
+
+  // Mostra metriche comparativa
+  iRenderExploreMetrics(datasets,minLen,monthly);
+}
+
+function iRenderExploreMetrics(datasets,len,monthly){
+  var el=document.getElementById('explore-metrics');
+  if(!el)return;
+  var finalInv=monthly*len;
+  var rows=datasets.map(function(d){
+    var bt=d.bt;
+    var finalVal=bt[len-1]?bt[len-1].val:0;
+    var totRet=(finalVal/finalInv-1)*100;
+    // Calcola rendimento annuo composto (CAGR)
+    var years=len/12;
+    var cagr=(Math.pow(finalVal/finalInv,1/years)-1)*100;
+    // Anno peggiore
+    var worstYear=0;
+    for(var y=0;y<Math.floor(len/12);y++){
+      var startVal=y===0?monthly:bt[y*12-1].val;
+      var endVal=bt[(y+1)*12-1]?bt[(y+1)*12-1].val:0;
+      var yret=(endVal-startVal-monthly*12)/startVal*100;
+      if(yret<worstYear)worstYear=yret;
+    }
+    var col=totRet>=0?'#4ade9e':'#f87171';
+    return '<tr>'+
+      '<td style="padding:7px 10px;font-weight:600;color:#e8e9ea;font-size:12px">'+d.fp.icon+' '+d.fp.name+'</td>'+
+      '<td style="padding:7px 10px;text-align:right;color:'+col+';font-weight:700;font-size:12px">'+Math.round(finalVal).toLocaleString('it-IT')+'€</td>'+
+      '<td style="padding:7px 10px;text-align:right;color:'+col+';font-size:11px">'+(totRet>=0?'+':'')+totRet.toFixed(1)+'%</td>'+
+      '<td style="padding:7px 10px;text-align:right;color:#7c6fcd;font-size:11px">'+cagr.toFixed(1)+'%/a</td>'+
+      '<td style="padding:7px 10px;text-align:right;color:#f87171;font-size:11px">'+worstYear.toFixed(1)+'%</td>'+
+    '</tr>';
+  }).join('');
+
+  el.innerHTML='<div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Metriche comparate</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'+
+    '<thead><tr>'+['Portafoglio','Valore finale','Rend. tot.','CAGR','Anno peggiore'].map(function(h){
+      return '<th style="padding:6px 10px;text-align:right;color:#4a5568;border-bottom:1px solid #263040;white-space:nowrap">'+h+'</th>';
+    }).join('')+'</tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div>'+
+    '<div style="font-size:10px;color:#4a5568;margin-top:6px">Versamento ipotetico €200/mese. I rendimenti passati non garantiscono rendimenti futuri.</div>';
 }
 
 // ═══ ETF SEARCH UI ══════════════════════════════════════════════════════════
