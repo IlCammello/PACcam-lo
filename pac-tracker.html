@@ -384,6 +384,8 @@ details[open] summary{margin-bottom:10px}
   box-shadow:0 4px 20px rgba(0,0,0,.7);max-width:280px;
   line-height:1.55;white-space:pre-line;letter-spacing:0}
 
+/* ─── Nav sticky ─────────────────────────────────────────────────────────── */
+#main-nav{position:sticky;top:0;z-index:100;background:var(--surface)}
 /* ─── Position Detail Drawer ─────────────────────────────────────────── */
 #drw-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
   backdrop-filter:blur(3px);z-index:150}
@@ -2706,6 +2708,8 @@ function renderCompareChart(){
   var monthly=IDEAL_STATE.monthlyEquiv||IDEAL_STATE.monthlyAmount||200;
   var realR=buildRealMonthlyReturns();
   var idealR=typeof calcAllocReturns==='function'?calcAllocReturns(IDEAL_STATE.weights):null;
+  // Portafogli classici selezionati per il confronto
+  var _selectedClassics=window._compareClassics||new Set();
   if(!realR&&!idealR){
     section.style.display='block';
     body.innerHTML='<p style="color:#7a90a8;font-size:13px;text-align:center;padding:16px">Carica i dati da <strong style="color:#e8b84b">Portafoglio Ideale → Proiezioni</strong> per vedere il confronto.</p>';
@@ -2749,6 +2753,24 @@ function renderCompareChart(){
   // Barra periodi confronto
   var maxYrs=Math.round(Math.min(realR?realR.length:9999,idealR?idealR.length:9999)/12);
   var cmpPills=[{l:'3A',y:3},{l:'5A',y:5},{l:'10A',y:10},{l:'Max',y:0}].filter(function(p){return p.y===0||p.y<=maxYrs;});
+  // Barra toggle portafogli classici
+  var ccBar=document.getElementById('compare-classics-bar');
+  if(ccBar&&typeof FAMOUS_PORTFOLIOS!=='undefined'){
+    var _sc=window._compareClassics||new Set();
+    ccBar.innerHTML=FAMOUS_PORTFOLIOS.map(function(p){
+      var sel=_sc.has(p.id);
+      return '<button data-classic="'+p.id+'" style="font-size:11px;padding:4px 10px;border-radius:16px;cursor:pointer;border:1px solid '+(sel?p.id==='gb'?'#4a90d9':p.id==='as'?'#4ade9e':p.id==='pp'?'#fbbf24':'#f97316':'#263040')+';background:'+(sel?'rgba(232,184,75,0.1)':'none')+';color:'+(sel?'#e8e9ea':'#7a90a8')+'">'+p.icon+' '+p.name+'</button>';
+    }).join('');
+    ccBar.onclick=function(e){
+      var btn=e.target.closest('[data-classic]');
+      if(!btn)return;
+      var id=btn.getAttribute('data-classic');
+      var sc=window._compareClassics||new Set();
+      if(sc.has(id))sc.delete(id); else sc.add(id);
+      window._compareClassics=sc;
+      renderCompareChart();
+    };
+  }
   var cpBar=document.getElementById('compare-period-bar');
   if(cpBar){
     var B='display:inline-block;background:#161e2e;border:1px solid #263040;color:#7a90a8;padding:4px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:500;outline:none;border:none;white-space:nowrap;margin-right:4px';
@@ -2770,6 +2792,18 @@ function renderCompareChart(){
     var ctx=document.getElementById('ch-compare');if(!ctx)return;
     if(window._chCompare)window._chCompare.destroy();
     var datasets=[{label:'Capitale versato',data:inv,borderColor:'#4a5568',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}];
+  // Aggiungi portafogli classici selezionati
+  var _sc2=window._compareClassics||new Set();
+  var classicColors={'gb':'#4a90d9','as':'#4ade9e','pp':'#fbbf24','3f':'#f97316'};
+  if(typeof FAMOUS_PORTFOLIOS!=='undefined'&&typeof calcAllocReturns==='function'){
+    FAMOUS_PORTFOLIOS.forEach(function(p){
+      if(!_sc2.has(p.id))return;
+      var cr=calcAllocReturns(p.w);if(!cr||cr.length<12)return;
+      var cbt=historicalBacktest(cr.slice(-len),monthly);
+      var cvals=[];for(var ci=0;ci<len;ci+=step)cvals.push(Math.round(cbt[ci]?cbt[ci].val:0));
+      datasets.push({label:p.icon+' '+p.name,data:cvals,borderColor:classicColors[p.id]||'#7a90a8',fill:false,tension:.3,borderWidth:1.5,pointRadius:0,borderDash:[3,2]});
+    });
+  }
     if(dR.length)datasets.push({label:'Portafoglio reale',data:dR,borderColor:'#4a90d9',backgroundColor:'rgba(74,144,217,0.08)',fill:true,tension:.3,borderWidth:2,pointRadius:0});
     if(dI.length)datasets.push({label:IDEAL_STATE.profile.name,data:dI,borderColor:'#e8b84b',backgroundColor:'rgba(232,184,75,0.08)',fill:true,tension:.3,borderWidth:2,pointRadius:0});
     window._chCompare=new Chart(ctx,{type:'line',
