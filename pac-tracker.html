@@ -1399,6 +1399,37 @@ function computeSecAlloc(cp){
 
 // ═══ TABS ════════════════════════════════════════════════════════════════════
 const TABS=['dashboard','performance','portfolio','simulator','backtest'];
+
+var FAMOUS_PORTFOLIOS = [
+  {
+    id:'gb', icon:'🦋', name:'Golden Butterfly',
+    author:'Tyler (Portfolio Charts)',
+    philosophy:'Progettato per prosperare in qualsiasi regime economico. Divide il capitale in 5 parti uguali: azioni large cap (crescita), azioni small cap value (sovraperformance in espansione), obbligazioni lunghe (protezione in deflazione), obbligazioni brevi (stabilità), oro (protezione da inflazione e crisi).',
+    why:'Uno dei portafogli più bilanciati in assoluto. Storica bassa volatilità con rendimenti decenti.',
+    w:{glob:20,em:0,eu:20,bondlt:20,bondct:20,gold:20,comm:0,cash:0,btc:0}
+  },
+  {
+    id:'as', icon:'🌦️', name:'All Seasons',
+    author:'Ray Dalio (Bridgewater)',
+    philosophy:'Basato sulla teoria dei "quattro regimi economici": crescita alta/bassa e inflazione alta/bassa. Ogni asset performa bene in almeno uno scenario. Le obbligazioni lunghe (40%) dominano per dare stabilità nelle fasi di deflazione o bassa crescita.',
+    why:'Progettato per non perdere mai troppo. Ideale per chi non sopporta i crolli ma vuole comunque crescita.',
+    w:{glob:30,em:0,eu:0,bondlt:40,bondct:15,gold:7,comm:8,cash:0,btc:0}
+  },
+  {
+    id:'pp', icon:'🔒', name:'Permanent Portfolio',
+    author:'Harry Browne',
+    philosophy:'Filosofia radicale: quattro asset uguali — futuro imprevedibile. Azioni per prosperita, bond per deflazione, oro per inflazione, liquidita per recessione. Semplicita massima.',
+    why:'Il portafoglio "pigro" per eccellenza. Massima diversificazione con minima complessità gestionale.',
+    w:{glob:25,em:0,eu:0,bondlt:25,bondct:0,gold:25,comm:0,cash:25,btc:0}
+  },
+  {
+    id:'3f', icon:'📊', name:'Three-Fund',
+    author:'Jack Bogle (Bogleheads)',
+    philosophy:'Il punto di partenza per qualsiasi investitore passivo. Massima diversificazione globale con soli 3 ETF: mercati sviluppati, emergenti e obbligazionario. Nessuna scommessa settoriale o geografica. La quota obbligazionaria si regola in base all eta.',
+    why:'Il portafoglio più semplice e scientificamente solido. Ottimo come base di un PAC a lungo termine.',
+    w:{glob:55,em:8,eu:0,bondlt:27,bondct:0,gold:10,comm:0,cash:0,btc:0}
+  },
+];
 function switchTab(n){
   closeDrawer();
   TABS.forEach(t=>{
@@ -1418,9 +1449,9 @@ function renderTab(n){
   if(n==='dashboard')rdash();
   if(n==='performance')rperf();
   if(n==='portfolio')rport();
-  if(n==='transactions')rtransactions();
+  if(n==='transactions'){openOvTransactions && openOvTransactions();}
   if(n==='report')rreport_tab();
-  if(n==='simulator')initIdealPortfolio();
+  if(n==='simulator'){if(!window._idealInited){initIdealPortfolio();window._idealInited=true;}else{iShowEntry();}}
   if(n==='backtest')initBacktestTab();
 }
 
@@ -3810,36 +3841,6 @@ function iShowExplore(){
 }
 
 // ─── DATI PORTAFOGLI FAMOSI ───────────────────────────────────────────────────
-var FAMOUS_PORTFOLIOS = [
-  {
-    id:'gb', icon:'🦋', name:'Golden Butterfly',
-    author:'Tyler (Portfolio Charts)',
-    philosophy:'Progettato per prosperare in qualsiasi regime economico. Divide il capitale in 5 parti uguali: azioni large cap (crescita), azioni small cap value (sovraperformance in espansione), obbligazioni lunghe (protezione in deflazione), obbligazioni brevi (stabilità), oro (protezione da inflazione e crisi).',
-    why:'Uno dei portafogli più bilanciati in assoluto. Storica bassa volatilità con rendimenti decenti.',
-    w:{glob:20,em:0,eu:20,bondlt:20,bondct:20,gold:20,comm:0,cash:0,btc:0}
-  },
-  {
-    id:'as', icon:'🌦️', name:'All Seasons',
-    author:'Ray Dalio (Bridgewater)',
-    philosophy:'Basato sulla teoria dei "quattro regimi economici": crescita alta/bassa e inflazione alta/bassa. Ogni asset performa bene in almeno uno scenario. Le obbligazioni lunghe (40%) dominano per dare stabilità nelle fasi di deflazione o bassa crescita.',
-    why:'Progettato per non perdere mai troppo. Ideale per chi non sopporta i crolli ma vuole comunque crescita.',
-    w:{glob:30,em:0,eu:0,bondlt:40,bondct:15,gold:7,comm:8,cash:0,btc:0}
-  },
-  {
-    id:'pp', icon:'🔒', name:'Permanent Portfolio',
-    author:'Harry Browne',
-    philosophy:'Filosofia radicale: quattro asset uguali — futuro imprevedibile. Azioni per prosperita, bond per deflazione, oro per inflazione, liquidita per recessione. Semplicita massima.',
-    why:'Il portafoglio "pigro" per eccellenza. Massima diversificazione con minima complessità gestionale.',
-    w:{glob:25,em:0,eu:0,bondlt:25,bondct:0,gold:25,comm:0,cash:25,btc:0}
-  },
-  {
-    id:'3f', icon:'📊', name:'Three-Fund',
-    author:'Jack Bogle (Bogleheads)',
-    philosophy:'Il punto di partenza per qualsiasi investitore passivo. Massima diversificazione globale con soli 3 ETF: mercati sviluppati, emergenti e obbligazionario. Nessuna scommessa settoriale o geografica. La quota obbligazionaria si regola in base all eta.',
-    why:'Il portafoglio più semplice e scientificamente solido. Ottimo come base di un PAC a lungo termine.',
-    w:{glob:55,em:8,eu:0,bondlt:27,bondct:0,gold:10,comm:0,cash:0,btc:0}
-  },
-];
 
 function iRenderExploreCards(){
   var el=document.getElementById('explore-cards');if(!el)return;
@@ -5992,13 +5993,6 @@ function rebuildNav(){
   nav.innerHTML=tabOrder.map(t=>`<button data-tab="${t}" onclick="switchTab('${t}')" draggable="true">${TAB_LABELS[t]}</button>`).join('');
   nav.querySelectorAll('button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===cur));
   initTabDrag();
-}
-// Update switchTab to use data-tab attributes
-function switchTab(n){
-  TABS.forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===n));
-  document.querySelectorAll('nav button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));
-  document.querySelectorAll('#bottom-nav button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));
-  renderTab(n);
 }
 
 
