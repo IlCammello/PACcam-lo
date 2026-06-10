@@ -601,14 +601,14 @@ function updateBottomNav(tab){
   <div class="tab-content active" id="tab-dashboard">
 
     <div class="dash-section" data-sec="perf" draggable="true" style="position:relative;margin-bottom:20px">
-      <div id="dash-perf-card" class="chart-card" style="cursor:pointer" onclick="switchTab('performance')">
+      <div id="dash-perf-card" class="chart-card" style="cursor:pointer" onclick="">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="chart-title" style="margin-bottom:0">📈 Andamento Portafoglio</div>
           <span style="font-size:11px;color:var(--accent)">Performance →</span>
         </div>
         <div id="dash-perf-placeholder" style="height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--text-muted);font-size:12px">
           <span style="font-size:24px">📊</span><span>Carica i dati in Performance</span>
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();switchTab('performance');setTimeout(loadPerfData,300)">Carica ora</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation()">Carica ora</button>
         </div>
         <div style="position:relative;height:140px;display:none" id="dash-perf-wrap"><canvas id="ch-dash-perf"></canvas></div>
         <div id="dash-perf-legend" style="display:flex;gap:16px;margin-top:8px;font-size:11px;flex-wrap:wrap"></div>
@@ -792,7 +792,7 @@ function updateBottomNav(tab){
         <div style="font-size:20px;font-weight:800;color:#e8e9ea">Portafoglio Ideale</div>
         <div style="font-size:12px;color:#7a90a8;margin-top:3px">Costruisci, studia e confronta strategie di investimento</div>
       </div>
-      <button onclick="iShowGuided()" style="padding:10px 18px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;font-size:13px;cursor:pointer">+ Crea portafoglio</button>
+      <button onclick="iShowGuided()" style="padding:12px 22px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 2px 12px rgba(232,184,75,0.3)">+ Crea portafoglio</button>
     </div>
 
     <!-- I miei portafogli salvati -->
@@ -1446,13 +1446,16 @@ function rreport_tab(){var el=document.getElementById("pac-report");if(el&&typeo
 function loadDashPerfData(){if(Object.keys(PC).length===0){loadPCFromStorage();} setTimeout(rdash,100);}
 
 function renderTab(n){
-  if(n==='dashboard')rdash();
-  if(n==='performance')rperf();
-  if(n==='portfolio')rport();
-  if(n==='transactions'){openOvTransactions && openOvTransactions();}
-  if(n==='report')rreport_tab();
-  if(n==='simulator'){if(!window._idealInited){initIdealPortfolio();window._idealInited=true;}else{iShowEntry();}}
-  if(n==='backtest')initBacktestTab();
+  try{
+    if(n==='dashboard')rdash();
+    else if(n==='performance')rperf();
+    else if(n==='portfolio')rport();
+    else if(n==='simulator'){
+      if(!window._idealInited){initIdealPortfolio();window._idealInited=true;}
+      else{iShowEntry();}
+    }
+    else if(n==='backtest')initBacktestTab();
+  }catch(e){console.error('[renderTab '+n+']',e);}
 }
 
 function rdash(){
@@ -1468,7 +1471,7 @@ function rdash(){
       <div class="kpi-sub">${S.transactions.length} acquisti</div>
       <div class="kpi-link">Transazioni →</div>
     </div>
-    <div class="kpi-card ${tg>=0?'green':'red'}" onclick="switchTab('performance')" data-tip="Vai alla Performance">
+    <div class="kpi-card ${tg>=0?'green':'red'}" onclick="" data-tip="Vai alla Performance">
       <div class="kpi-label">Gain / Loss Totale</div>
       <div class="kpi-value" style="color:${tg>=0?'var(--green)':'var(--red)'}">${fEur(tg)}</div>
       <div class="kpi-sub" style="color:${tg>=0?'var(--green)':'var(--red)'}">${fPct(tgp)}</div>
@@ -3649,7 +3652,7 @@ function iRenderMyPortfolios(){
         '</div>'+
       '</div>'+
       '<div style="display:flex;flex-direction:column;gap:6px">'+
-        '<button data-load-portfolio="'+p.id+'" style="padding:6px 12px;background:#e8b84b;border:none;border-radius:6px;color:#0a0f1a;font-weight:700;font-size:11px;cursor:pointer">Usa</button>'+
+        '<button data-load-portfolio="'+p.id+'" style="padding:8px 16px;background:#e8b84b;border:none;border-radius:8px;color:#0a0f1a;font-weight:800;font-size:13px;cursor:pointer">Usa →</button>'+
         '<button data-del-portfolio="'+p.id+'" style="padding:6px 12px;background:none;border:1px solid #263040;border-radius:6px;color:#f87171;font-size:11px;cursor:pointer">✕</button>'+
       '</div>'+
     '</div>';
@@ -3739,7 +3742,7 @@ function iOpenClassicDetail(id){
     '</div>'+
     // Bottoni azione
     '<div style="display:flex;gap:10px">'+
-      '<button data-use-classic="'+id+'" style="flex:1;padding:12px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;font-size:14px;cursor:pointer">'+
+      '<button data-use-classic="'+id+'" style="flex:1;padding:12px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;font-size:14px;cursor:pointer">Usa questo portafoglio →</button>'+
     '</div>';
 
   document.getElementById('ideal-entry').style.display='none';
@@ -5712,6 +5715,8 @@ function rPeriodTable(cp,tv){
 }
 
 function rperf(){
+  // Carica dati storici se non presenti (serve per Performance)
+  if(typeof PC!=='undefined'&&Object.keys(PC).length===0)loadPCFromStorage();
   checkAutoRefreshPerf();
   const cp=computeAll().filter(p=>p.currentVal>0);
   const tv=cp.reduce((a,p)=>a+p.currentVal,0);
