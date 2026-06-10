@@ -511,7 +511,7 @@ nav button.dragging{opacity:.4}
 
 <header>
   <div class="logo">PAC<span>camélo</span></div>
-  <nav id="main-nav">
+  <nav style="position:sticky;top:0;z-index:100;background:var(--surface)" id="main-nav">
     <button data-tab="dashboard" class="active" onclick="switchTab('dashboard')" draggable="true">Dashboard</button>
     <button data-tab="portfolio" onclick="switchTab('portfolio')" draggable="true">Portafoglio</button>
     <button data-tab="performance" onclick="switchTab('performance')" draggable="true">📈 Performance</button>
@@ -3401,16 +3401,18 @@ function iShowGuided(){
   document.getElementById('ideal-entry').style.display='none';
   document.getElementById('ideal-explore').style.display='none';
   document.getElementById('ideal-stepper-wrap').style.display='block';
-  // Se c'è già un profilo, vai direttamente all'allocazione
-  if(IDEAL_STATE.profile)iGoStep('alloc');
-  else iGoStep('quiz');
+  // Va sempre al quiz quando l'utente clicca esplicitamente
+  iGoStep('quiz');
 }
 
 function iShowExplore(){
   document.getElementById('ideal-entry').style.display='none';
   document.getElementById('ideal-stepper-wrap').style.display='none';
   document.getElementById('ideal-explore').style.display='block';
-  iRenderExploreCards();
+  // Carica dati proxy se non presenti
+  var hasData=Object.keys(PROXY_MONTHLY).some(function(k){return PROXY_MONTHLY[k]&&PROXY_MONTHLY[k].length>0;});
+  if(!hasData)loadProxyData().then(function(){iRenderExploreCards();});
+  else iRenderExploreCards();
 }
 
 // ─── DATI PORTAFOGLI FAMOSI ───────────────────────────────────────────────────
@@ -3487,14 +3489,12 @@ function iRenderExploreCards(){
           '</div>'+
         '</div>'+
       '</div>'+
-      // Filosofia (collassabile)
-      '<details style="margin-bottom:12px">'+
-        '<summary style="font-size:12px;font-weight:700;color:#7a90a8;cursor:pointer;list-style:none">📖 Filosofia e perché funziona</summary>'+
-        '<div style="margin-top:8px;font-size:12px;color:#7a90a8;line-height:1.6">'+
-          '<div style="margin-bottom:6px">'+p.philosophy+'</div>'+
-          '<div style="color:#4ade9e;font-size:11px">✓ '+p.why+'</div>'+
-        '</div>'+
-      '</details>'+
+      // Filosofia (visibile)
+      '<div style="margin-bottom:12px;background:#161e2e;border-radius:8px;padding:12px">'+
+        '<div style="font-size:10px;font-weight:700;color:#e8b84b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">📖 Filosofia</div>'+
+        '<div style="font-size:12px;color:#7a90a8;line-height:1.6;margin-bottom:6px">'+p.philosophy+'</div>'+
+        '<div style="font-size:11px;color:#4ade9e">✓ '+p.why+'</div>'+
+      '</div>'+
       // Allocazione
       '<div style="margin-bottom:12px">'+bars+'</div>'+
       // Bottoni
