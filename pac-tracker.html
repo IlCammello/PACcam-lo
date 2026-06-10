@@ -512,6 +512,10 @@ nav button.dragging{opacity:.4}
   padding:3px 2px;border-radius:3px;line-height:1;transition:all .15s;font-weight:700;width:20px;text-align:center}
 .dash-ctrl-btn:hover:not(:disabled){background:var(--accent);color:#000}
 .dash-ctrl-btn:disabled{opacity:.2;cursor:default}
+
+.tab-content.active{display:block!important}
+nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
+.classic-card-item:hover{border-color:#e8b84b!important}
 </style>
 </head>
 <body>
@@ -601,7 +605,7 @@ function updateBottomNav(tab){
   <div class="tab-content active" id="tab-dashboard">
 
     <div class="dash-section" data-sec="perf" draggable="true" style="position:relative;margin-bottom:20px">
-      <div id="dash-perf-card" class="chart-card" style="cursor:pointer" onclick="">
+      <div id="dash-perf-card" class="chart-card" style="cursor:pointer" onclick="dashLoadAndRender()">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="chart-title" style="margin-bottom:0">📈 Andamento Portafoglio</div>
           <span style="font-size:11px;color:var(--accent)">Performance →</span>
@@ -982,9 +986,8 @@ function updateBottomNav(tab){
     <button onclick="iGoCompare()" style="width:100%;margin-top:16px;padding:14px;background:#161e2e;border:1px solid #4ade9e;color:#4ade9e;font-weight:800;font-size:15px;border-radius:12px;cursor:pointer">🔍 Confronta col tuo portafoglio reale</button>
   </div>
 </div>
-<div class="tab-content" </div>
 
-id="tab-backtest">
+<div class="tab-content" id="tab-backtest">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
     <div>
       <h2 class="section-title" style="margin:0">🔬 Backtest</h2>
@@ -1451,8 +1454,15 @@ function renderTab(n){
     else if(n==='performance')rperf();
     else if(n==='portfolio')rport();
     else if(n==='simulator'){
-      if(!window._idealInited){initIdealPortfolio();window._idealInited=true;}
-      else{iShowEntry();}
+      if(!window._idealInited){
+        initIdealPortfolio();
+        window._idealInited=true;
+        // Forza render homepage subito (non solo con retry)
+        setTimeout(function(){iRenderHomepage();},200);
+      } else {
+        iShowEntry();
+        iRenderHomepage();
+      }
     }
     else if(n==='backtest')initBacktestTab();
   }catch(e){console.error('[renderTab '+n+']',e);}
@@ -7298,7 +7308,21 @@ function switchSettingsTab(tab){
   }
 }
 
-</script>
+
+
+function dashLoadAndRender(){
+  var loaded=loadPCFromStorage();
+  if(loaded){
+    // Dati in cache: renderizza subito
+    setTimeout(function(){rdash();renderDashPerfChart&&renderDashPerfChart();},100);
+  } else {
+    // Nessuna cache: scarica dati Yahoo Finance
+    if(typeof loadPCData==='function'){
+      loadPCData().then(function(){rdash();renderDashPerfChart&&renderDashPerfChart();})
+                  .catch(function(e){console.error('loadPCData:',e);});
+    }
+  }
+}</script>
 
 <div id="drw-ov" onclick="if(event.target===this)closeDrawer()">
   <div id="drw" style="position:fixed!important;right:0;top:0;bottom:0;width:480px;max-width:92vw;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;z-index:151;transform:translateX(105%);transition:transform .3s ease">
