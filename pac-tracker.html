@@ -385,6 +385,10 @@ details[open] summary{margin-bottom:10px}
   line-height:1.55;white-space:pre-line;letter-spacing:0}
 
 .classic-card-item:hover{border-color:#e8b84b!important}
+
+nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b!important}
+nav button{border-bottom:2px solid transparent;padding-bottom:calc(var(--nav-pad,10px) - 2px)}
+
 /* ─── Nav sticky ─────────────────────────────────────────────────────────── */
 #main-nav{position:fixed!important;top:0;left:0;right:0;z-index:200;background:var(--surface)!important}
 /* ─── Position Detail Drawer ─────────────────────────────────────────── */
@@ -516,7 +520,7 @@ nav button.dragging{opacity:.4}
   <div class="logo">PAC<span>camélo</span></div>
   <nav style="position:sticky;top:0;z-index:100;background:var(--surface)" id="main-nav">
     <button data-tab="dashboard" class="active" onclick="switchTab('dashboard')" draggable="true">Dashboard</button>
-    <button data-tab="performance" onclick="if(Object.keys(PC).length===0)loadPerfData();else rdash()" draggable="true">📈 Performance</button>
+    <button data-tab="performance" onclick="loadDashPerfData()" draggable="true">📈 Performance</button>
     <button data-tab="portfolio" onclick="switchTab('portfolio')" draggable="true">Portafoglio</button>
     <button data-tab="simulator" onclick="switchTab('simulator')" draggable="true">🎯 Ideale</button>
     <button data-tab="backtest" onclick="switchTab('backtest')" draggable="true">🔬 Backtest</button>
@@ -1395,11 +1399,31 @@ function computeSecAlloc(cp){
 
 // ═══ TABS ════════════════════════════════════════════════════════════════════
 const TABS=['dashboard','performance','portfolio','simulator','backtest'];
-function switchTab(n){closeDrawer();TABS.forEach(t=>{document.getElementById('tab-'+t).classList.toggle('active',t===n);document.querySelectorAll('nav button')[TABS.indexOf(t)].classList.toggle('active',t===n);});renderTab(n);}
+function switchTab(n){
+  closeDrawer();
+  TABS.forEach(t=>{
+    var tabEl=document.getElementById('tab-'+t);
+    if(tabEl)tabEl.classList.toggle('active',t===n);
+    var btn=document.querySelector('nav button[data-tab="'+t+'"]');
+    if(btn)btn.classList.toggle('active',t===n);
+  });
+  renderTab(n);
+}
 function curTab(){return TABS.find(t=>document.getElementById('tab-'+t).classList.contains('active'))||'dashboard';}
-function renderTab(n){if(n==='dashboard')rdash();if(n==='backtest'){initBacktestTab();}if(n==='portfolio'){rport();}if(n==='transactions')rtx();if(n==='performance')rperf();if(n==='report')rrep();if(n==='simulator')initSim();}
+function rreport_tab(){var el=document.getElementById("pac-report");if(el&&typeof buildReport==="function")buildReport();}
 
-// ═══ DASHBOARD ════════════════════════════════════════════════════════════════
+function loadDashPerfData(){if(Object.keys(PC).length===0){loadPCFromStorage();} setTimeout(rdash,100);}
+
+function renderTab(n){
+  if(n==='dashboard')rdash();
+  if(n==='performance')rperf();
+  if(n==='portfolio')rport();
+  if(n==='transactions')rtransactions();
+  if(n==='report')rreport_tab();
+  if(n==='simulator')initIdealPortfolio();
+  if(n==='backtest')initBacktestTab();
+}
+
 function rdash(){
   const cp=computeAll(),tv=cp.reduce((a,p)=>a+p.currentVal,0),ti=cp.reduce((a,p)=>a+p.totalCost,0),tg=tv-ti,tgp=ti>0?(tg/ti)*100:0;
   document.getElementById('kpi-grid').innerHTML=`
@@ -1440,6 +1464,7 @@ function rdash(){
   bdonut('ch-asset','leg-asset',Object.keys(AC).filter(k=>active.some(p=>p.assetClass===k)),active.reduce((a,p)=>{a[p.assetClass]=(a[p.assetClass]||0)+p.currentVal;return a;},{}),AC,tv);
   _renderDashTable(active,tv);
 }
+
 function bdonut(cid,lid,labels,data,cmap,tv){
   const vals=labels.map(l=>data[l]||0);const colors=labels.map((l,i)=>cmap[l]||FB[i%FB.length]);
   if(CH[cid])CH[cid].destroy();const ctx=document.getElementById(cid);if(!ctx)return;
