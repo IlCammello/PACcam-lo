@@ -516,6 +516,14 @@ nav button.dragging{opacity:.4}
 .tab-content.active{display:block!important}
 nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
 .classic-card-item:hover{border-color:#e8b84b!important}
+
+.pac-ring-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px}
+.pac-ring-fill{fill:none;stroke:#e8b84b;stroke-width:5;stroke-linecap:round;stroke-dasharray:157;stroke-dashoffset:157;transition:stroke-dashoffset .5s ease}
+.pac-ring-track{fill:none;stroke:#1e2d40;stroke-width:5}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tab-content.active{display:block!important}
+nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
+
 </style>
 </head>
 <body>
@@ -791,12 +799,10 @@ function updateBottomNav(tab){
   <div id="ideal-entry" style="display:block">
 
     <!-- Header + bottone crea -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:20px;font-weight:800;color:#e8e9ea">Portafoglio Ideale</div>
-        <div style="font-size:12px;color:#7a90a8;margin-top:3px">Costruisci, studia e confronta strategie di investimento</div>
-      </div>
+    <div style="margin-bottom:20px">
       <button onclick="iShowGuided()" style="padding:12px 22px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 2px 12px rgba(232,184,75,0.3)">+ Crea portafoglio</button>
+      <div style="font-size:10px;color:#4a5568;margin-top:8px">Costruisci, studia e confronta strategie di investimento</div>
+    </div>
     </div>
 
     <!-- I miei portafogli salvati -->
@@ -988,65 +994,60 @@ function updateBottomNav(tab){
 </div>
 
 <div class="tab-content" id="tab-backtest">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-    <div>
-      <h2 class="section-title" style="margin:0">🔬 Backtest</h2>
-      <div style="font-size:12px;color:#7a90a8;margin-top:4px">Confronta portafogli su dati storici reali (~20 anni)</div>
-    </div>
-    <button onclick="runBacktest()" id="btn-backtest" style="padding:10px 20px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;cursor:pointer">▶ Avvia Backtest</button>
+
+  <div style="margin-bottom:20px">
+    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:4px">🔬 Backtest</div>
+    <div style="font-size:12px;color:#7a90a8">Confronta portafogli con dati storici reali</div>
   </div>
 
-  <!-- Selezione portafogli -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-    <!-- Portafoglio reale -->
-    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px">
-      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Il tuo portafoglio</div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="bt-check-real" checked style="accent-color:#e8b84b">
-        <span style="font-size:13px;color:#e8e9ea">🔵 Portafoglio reale</span>
-      </label>
-    </div>
-    <!-- Parametri PAC -->
-    <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px">
-      <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Parametri PAC</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <div style="flex:1;min-width:80px">
-          <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:3px">€/mese</label>
-          <input type="number" id="bt-monthly" value="200" style="width:100%;padding:6px 8px;background:#161e2e;border:1px solid #263040;border-radius:6px;color:#e8e9ea;font-size:13px;box-sizing:border-box">
-        </div>
-        <div style="flex:1;min-width:80px">
-          <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:3px">Periodo</label>
-          <select id="bt-period" style="width:100%;padding:6px 8px;background:#161e2e;border:1px solid #263040;border-radius:6px;color:#e8e9ea;font-size:13px">
-            <option value="5">5 anni</option>
-            <option value="10">10 anni</option>
-            <option value="15">15 anni</option>
-            <option value="0" selected>Max disponibile</option>
-          </select>
-        </div>
+  <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Parametri PAC</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:100px">
+        <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">€/mese</label>
+        <input type="number" id="bt-monthly" value="200" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;font-weight:700;box-sizing:border-box">
+      </div>
+      <div style="flex:1;min-width:140px">
+        <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Periodo</label>
+        <select id="bt-period" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:13px">
+          <option value="5">5 anni</option><option value="10">10 anni</option>
+          <option value="15">15 anni</option><option value="0" selected>Massimo</option>
+        </select>
       </div>
     </div>
   </div>
 
-  <!-- Portafogli salvati -->
-  <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:12px">
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">I tuoi portafogli ideali</div>
-    <div id="bt-saved-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+  <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Portafogli da confrontare</div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafoglio reale</div>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer">
+        <input type="checkbox" id="bt-check-real" checked style="accent-color:#e8b84b;width:16px;height:16px">
+        <span style="font-size:13px;font-weight:600;color:#4a90d9">🔵 Portafoglio reale</span>
+      </label>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli salvati</div>
+      <div id="bt-saved-list"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli classici</div>
+      <div id="bt-classic-list"></div>
+    </div>
   </div>
 
-  <!-- Portafogli classici -->
-  <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:20px">
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Portafogli classici</div>
-    <div id="bt-classic-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-  </div>
+  <button onclick="runBacktest()" id="btn-backtest"
+    style="width:100%;padding:14px;background:#e8b84b;border:none;border-radius:12px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:16px">
+    ▶ Avvia Backtest
+  </button>
 
-  <!-- Risultati -->
+  <div id="bt-proxy-status" style="font-size:11px;color:#4a5568;text-align:center;margin-bottom:12px"></div>
+
   <div id="bt-results" style="display:none">
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Risultati</div>
     <div style="height:260px;position:relative;margin-bottom:16px"><canvas id="ch-backtest"></canvas></div>
     <div id="bt-metrics-table"></div>
-    <div style="font-size:10px;color:#4a5568;margin-top:8px;line-height:1.5">Backtest su dati storici reali (S&P500, MSCI EAFE, EEM, TLT, GLD…) convertiti in EUR. I rendimenti passati non predicono il futuro.</div>
+    <div style="font-size:10px;color:#4a5568;margin-top:8px">Backtest su dati storici reali in EUR. I rendimenti passati non predicono il futuro.</div>
   </div>
-
 
 </main>
 
@@ -1469,6 +1470,7 @@ function renderTab(n){
 }
 
 function rdash(){
+  if(!Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length;}))loadPCFromStorage();
   const cp=computeAll(),tv=cp.reduce((a,p)=>a+p.currentVal,0),ti=cp.reduce((a,p)=>a+p.totalCost,0),tg=tv-ti,tgp=ti>0?(tg/ti)*100:0;
   document.getElementById('kpi-grid').innerHTML=`
     <div class="kpi-card accent" onclick="switchTab('portfolio')" data-tip="Vai al Portafoglio">
@@ -1507,6 +1509,7 @@ function rdash(){
   bpac();
   bdonut('ch-asset','leg-asset',Object.keys(AC).filter(k=>active.some(p=>p.assetClass===k)),active.reduce((a,p)=>{a[p.assetClass]=(a[p.assetClass]||0)+p.currentVal;return a;},{}),AC,tv);
   _renderDashTable(active,tv);
+  if(typeof renderDashPerfChart==='function')renderDashPerfChart();
 }
 
 function bdonut(cid,lid,labels,data,cmap,tv){
@@ -4177,43 +4180,6 @@ function openOvReport(){
 });
 
 // ─── BACKTEST TAB ─────────────────────────────────────────────────────────────
-function initBacktestTab(){
-  // Forza visibilità tab
-  var btEl=document.getElementById('tab-backtest');
-  if(btEl){btEl.style.display='block';}
-  // Carica dati proxy
-  var hasPM=typeof PROXY_MONTHLY!=='undefined';
-  var hasData=hasPM&&Object.keys(PROXY_MONTHLY).some(function(k){return PROXY_MONTHLY[k]&&PROXY_MONTHLY[k].length>0;});
-  if(!hasData&&typeof loadProxyData==='function')loadProxyData();
-
-  // Popola lista portafogli salvati
-  var savedEl=document.getElementById('bt-saved-list');
-  if(savedEl){
-    var saved=loadSavedPortfolios().filter(function(p){return !p.auto;});
-    if(!saved.length){
-      savedEl.innerHTML='<div style="font-size:12px;color:#4a5568">Nessun portafoglio salvato. Creane uno in Portafoglio Ideale.</div>';
-    } else {
-      savedEl.innerHTML=saved.map(function(p){
-        var profile=IDEAL_PROFILES.find(function(x){return x.id===p.profile;})||{icon:'📊',name:p.name};
-        return '<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#161e2e;border-radius:8px;cursor:pointer">'+
-          '<input type="checkbox" class="bt-check-saved" data-id="'+p.id+'" style="accent-color:#e8b84b">'+
-          '<span style="font-size:12px;color:#e8e9ea">'+profile.icon+' '+p.name+'</span>'+
-        '</label>';
-      }).join('');
-    }
-  }
-
-  // Popola lista classici
-  var classicEl=document.getElementById('bt-classic-list');
-  if(classicEl&&typeof FAMOUS_PORTFOLIOS!=='undefined'){
-    classicEl.innerHTML=FAMOUS_PORTFOLIOS.map(function(p){
-      return '<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#161e2e;border-radius:8px;cursor:pointer">'+
-        '<input type="checkbox" class="bt-check-classic" data-id="'+p.id+'" style="accent-color:#e8b84b">'+
-        '<span style="font-size:12px;color:#e8e9ea">'+p.icon+' '+p.name+'</span>'+
-      '</label>';
-    }).join('');
-  }
-}
 
 function runBacktest(){
   var btn=document.getElementById('btn-backtest');
@@ -7314,26 +7280,105 @@ function switchSettingsTab(tab){
 
 
 
-function dashLoadAndRender(card){
-  // Mostra stato caricamento
-  var ph=document.getElementById('dash-perf-placeholder');
-  if(ph)ph.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:10px;color:#7a90a8"><div class="spin" style="width:24px;height:24px;border:2px solid #263040;border-top-color:#e8b84b;border-radius:50%;animation:spin .8s linear infinite"></div><div style="font-size:12px">Caricamento dati storici...</div></div>';
-  var loaded=loadPCFromStorage();
-  if(loaded){
-    setTimeout(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();},150);
+
+function dashLoadAndRender(){
+  var hasCache=Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length;});
+  if(!hasCache)hasCache=loadPCFromStorage();
+
+  if(hasCache){
+    // Dati già disponibili: mostra subito senza animazione
+    rdash();
+    if(typeof renderDashPerfChart==='function')renderDashPerfChart();
+    // Refresh silenzioso in background
+    if(typeof loadPCData==='function'){
+      loadPCData().then(function(){
+        rdash();
+        if(typeof renderDashPerfChart==='function')renderDashPerfChart();
+      }).catch(function(){});
+    }
   } else {
+    // Nessun dato: mostra cerchio di caricamento
+    var ph=document.getElementById('dash-perf-placeholder');
+    if(ph){
+      ph.style.display='flex';ph.style.alignItems='center';ph.style.justifyContent='center';
+      ph.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px">'+
+        '<div style="position:relative;width:90px;height:90px">'+
+          '<svg style="transform:rotate(-90deg)" width="90" height="90" viewBox="0 0 90 90">'+
+            '<circle fill="none" stroke="#1e2d40" stroke-width="5" cx="45" cy="45" r="40"/>'+
+            '<circle id="pac-ring-fill" fill="none" stroke="#e8b84b" stroke-width="5" stroke-linecap="round" '+
+              'stroke-dasharray="251" stroke-dashoffset="251" cx="45" cy="45" r="40" style="transition:stroke-dashoffset .5s ease"/>'+
+          '</svg>'+
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'+
+            '<span id="pac-ring-pct" style="font-size:18px;font-weight:800;color:#e8b84b">0%</span>'+
+          '</div>'+
+        '</div>'+
+        '<div id="pac-ring-sub" style="font-size:12px;color:#7a90a8;text-align:center">Download dati...</div>'+
+      '</div>';
+    }
+    function setRing(pct,label){
+      var f=document.getElementById('pac-ring-fill');
+      var p=document.getElementById('pac-ring-pct');
+      var s=document.getElementById('pac-ring-sub');
+      if(f)f.style.strokeDashoffset=251-(251*Math.min(pct,100)/100);
+      if(p)p.textContent=Math.round(pct)+'%';
+      if(s&&label)s.textContent=label;
+    }
+    setRing(15,'Connessione a Yahoo Finance...');
     if(typeof loadPCData==='function'){
       loadPCData()
-        .then(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();})
-        .catch(function(err){
-          if(ph)ph.innerHTML='<div style="font-size:12px;color:#f87171">Errore caricamento dati. Controlla la connessione.</div>';
-          console.error('loadPCData:',err);
+        .then(function(){
+          setRing(100,'Completato!');
+          setTimeout(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();},400);
+        })
+        .catch(function(){
+          if(ph)ph.innerHTML='<div style="padding:20px;text-align:center">'+
+            '<div style="font-size:24px;margin-bottom:8px">⚠️</div>'+
+            '<div style="font-size:12px;color:#f87171">Errore caricamento dati</div>'+
+            '<button onclick="dashLoadAndRender()" style="margin-top:10px;padding:6px 14px;background:#161e2e;border:1px solid #263040;border-radius:6px;color:#7a90a8;cursor:pointer;font-size:11px">↺ Riprova</button>'+
+          '</div>';
         });
-    } else {
-      if(ph)ph.innerHTML='<div style="font-size:12px;color:#f87171">loadPCData non disponibile.</div>';
     }
   }
-}</script>
+}
+function initBacktestTab(){
+  var classicEl=document.getElementById('bt-classic-list');
+  if(classicEl&&typeof FAMOUS_PORTFOLIOS!=='undefined'){
+    var items='';
+    FAMOUS_PORTFOLIOS.forEach(function(p){
+      items+='<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px">'+
+        '<input type="checkbox" class="bt-check-classic" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px">'+
+        '<span style="font-size:13px;color:#e8e9ea">'+p.icon+' '+p.name+'</span>'+
+      '</label>';
+    });
+    classicEl.innerHTML=items;
+  }
+  var savedEl=document.getElementById('bt-saved-list');
+  if(savedEl){
+    var saved=loadSavedPortfolios().filter(function(p){return !p.auto;});
+    if(!saved.length){
+      savedEl.innerHTML='<div style="font-size:12px;color:#4a5568;padding:4px 0">Nessun portafoglio salvato — creane uno in Portafoglio Ideale.</div>';
+    } else {
+      var sitems='';
+      saved.forEach(function(p){
+        var pr=(IDEAL_PROFILES&&IDEAL_PROFILES.find(function(x){return x.id===p.profile;}))||{icon:'\ud83d\udcca',name:p.name};
+        sitems+='<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px">'+
+          '<input type="checkbox" class="bt-check-saved" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px">'+
+          '<span style="font-size:13px;color:#e8e9ea">'+pr.icon+' '+p.name+'</span>'+
+        '</label>';
+      });
+      savedEl.innerHTML=sitems;
+    }
+  }
+  var status=document.getElementById('bt-proxy-status');
+  var hasData=typeof PROXY_MONTHLY!=='undefined'&&Object.keys(PROXY_MONTHLY).some(function(k){return PROXY_MONTHLY[k]&&PROXY_MONTHLY[k].length>0;});
+  if(!hasData){
+    if(status)status.innerHTML='<span style="color:#e8b84b">\u23f3</span> Caricamento dati storici...';
+    if(typeof loadProxyData==='function')loadProxyData().then(function(){if(status)status.innerHTML='<span style="color:#4ade9e">\u2713</span> Dati storici pronti';});
+  } else {
+    if(status)status.innerHTML='<span style="color:#4ade9e">\u2713</span> Dati storici pronti';
+  }
+}
+</script>
 
 <div id="drw-ov" onclick="if(event.target===this)closeDrawer()">
   <div id="drw" style="position:fixed!important;right:0;top:0;bottom:0;width:480px;max-width:92vw;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;z-index:151;transform:translateX(105%);transition:transform .3s ease">
