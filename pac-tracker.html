@@ -524,6 +524,12 @@ nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!impor
 .tab-content.active{display:block!important}
 nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
 
+
+.pac-ring-fill{fill:none;stroke:#e8b84b;stroke-width:5;stroke-linecap:round;stroke-dasharray:251;stroke-dashoffset:251;transition:stroke-dashoffset .5s ease}
+.tab-content.active{display:block!important}
+nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
+.classic-card-item:hover,.portfolio-card-item:hover{border-color:#e8b84b!important;transition:border-color .15s}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -837,7 +843,7 @@ function updateBottomNav(tab){
     <div id="explore-cards" style="margin-bottom:20px"></div>
     <div id="explore-compare-wrap" style="display:none">
       <div style="font-size:13px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Confronto backtest</div>
-      <div style="height:220px;position:relative;margin-bottom:12px"><canvas id="ch-explore"></canvas></div>
+      <div style="height:280px;position:relative;margin-bottom:12px"><canvas id="ch-explore"></canvas></div>
       <div style="font-size:10px;color:#4a5568;margin-bottom:16px">Backtest su dati storici reali. Versamento ipotetico €200/mese.</div>
     <div id="explore-metrics" style="margin-top:12px"></div>
     </div>
@@ -994,61 +1000,56 @@ function updateBottomNav(tab){
 </div>
 
 <div class="tab-content" id="tab-backtest">
-
-  <div style="margin-bottom:20px">
-    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:4px">🔬 Backtest</div>
-    <div style="font-size:12px;color:#7a90a8">Confronta portafogli con dati storici reali</div>
+  <div style="margin-bottom:16px">
+    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:12px">🔬 Backtest</div>
+    <!-- Banner dati reali -->
+    <div style="background:linear-gradient(135deg,rgba(74,144,217,0.1) 0%,rgba(74,222,158,0.06) 100%);border:1px solid rgba(74,144,217,0.3);border-radius:12px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="font-size:18px">📡</div>
+        <div style="font-size:13px;font-weight:800;color:#e8e9ea">Dati storici reali — non simulati</div>
+      </div>
+      <div style="font-size:12px;color:#7a90a8;line-height:1.6;margin-bottom:10px">
+        I rendimenti mostrati sono calcolati su prezzi reali scaricati da Yahoo Finance.
+        Ogni categoria è rappresentata da un ETF o indice reale:
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:3px 8px;border-radius:4px">🌍 Azionario glob. → S&amp;P500 + MSCI EAFE</span>
+        <span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:3px 8px;border-radius:4px">🌏 Emergenti → MSCI EM (EEM)</span>
+        <span style="font-size:10px;background:rgba(74,222,158,0.12);color:#4ade9e;padding:3px 8px;border-radius:4px">📊 Bond LT → iShares 20Y (TLT)</span>
+        <span style="font-size:10px;background:rgba(74,222,158,0.12);color:#4ade9e;padding:3px 8px;border-radius:4px">📊 Bond CT → iShares 1-3Y (SHY)</span>
+        <span style="font-size:10px;background:rgba(251,191,36,0.12);color:#fbbf24;padding:3px 8px;border-radius:4px">🥇 Oro → SPDR Gold (GLD)</span>
+        <span style="font-size:10px;background:rgba(249,115,22,0.12);color:#f97316;padding:3px 8px;border-radius:4px">🛢 Materie prime → iShares GSCI (GSG)</span>
+      </div>
+      <div style="font-size:10px;color:#4a5568;border-top:1px solid rgba(74,144,217,0.15);padding-top:8px">
+        💱 Tutti i valori sono convertiti in <strong style="color:#7a90a8">EUR</strong> usando il cambio storico reale USD/EUR.
+        Il portafoglio reale usa i prezzi storici degli ETF che possiedi.
+        Disponibile circa <span id="bt-data-years" style="color:#e8b84b;font-weight:700">—</span> di storico.
+      </div>
+    </div>
   </div>
-
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:12px">
     <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Parametri PAC</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:100px">
-        <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">€/mese</label>
-        <input type="number" id="bt-monthly" value="200" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;font-weight:700;box-sizing:border-box">
-      </div>
-      <div style="flex:1;min-width:140px">
-        <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Periodo</label>
+      <div style="flex:1;min-width:100px"><label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">€/mese</label>
+        <input type="number" id="bt-monthly" value="200" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;font-weight:700;box-sizing:border-box"></div>
+      <div style="flex:1;min-width:140px"><label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Periodo</label>
         <select id="bt-period" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:13px">
-          <option value="5">5 anni</option><option value="10">10 anni</option>
-          <option value="15">15 anni</option><option value="0" selected>Massimo</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
+          <option value="5">5 anni</option><option value="10">10 anni</option><option value="15">15 anni</option><option value="0" selected>Massimo</option></select></div>
+    </div></div>
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px">
     <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Portafogli da confrontare</div>
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafoglio reale</div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafoglio reale</div>
       <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer">
         <input type="checkbox" id="bt-check-real" checked style="accent-color:#e8b84b;width:16px;height:16px">
-        <span style="font-size:13px;font-weight:600;color:#4a90d9">🔵 Portafoglio reale</span>
-      </label>
-    </div>
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli salvati</div>
-      <div id="bt-saved-list"></div>
-    </div>
-    <div>
-      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli classici</div>
-      <div id="bt-classic-list"></div>
-    </div>
-  </div>
-
-  <button onclick="runBacktest()" id="btn-backtest"
-    style="width:100%;padding:14px;background:#e8b84b;border:none;border-radius:12px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:16px">
-    ▶ Avvia Backtest
-  </button>
-
+        <span style="font-size:13px;font-weight:600;color:#4a90d9">🔵 Portafoglio reale</span></label></div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli salvati</div><div id="bt-saved-list"></div></div>
+    <div><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli classici</div><div id="bt-classic-list"></div></div></div>
+  <button onclick="runBacktest()" id="btn-backtest" style="width:100%;padding:14px;background:#e8b84b;border:none;border-radius:12px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:12px">▶ Avvia Backtest</button>
   <div id="bt-proxy-status" style="font-size:11px;color:#4a5568;text-align:center;margin-bottom:12px"></div>
-
   <div id="bt-results" style="display:none">
-    <div style="height:260px;position:relative;margin-bottom:16px"><canvas id="ch-backtest"></canvas></div>
+    <div style="height:320px;position:relative;margin-bottom:16px"><canvas id="ch-backtest"></canvas></div>
     <div id="bt-metrics-table"></div>
-    <div style="font-size:10px;color:#4a5568;margin-top:8px">Backtest su dati storici reali in EUR. I rendimenti passati non predicono il futuro.</div>
-  </div>
-
+    <div style="font-size:10px;color:#4a5568;margin-top:8px">Backtest su dati storici reali in EUR. I rendimenti passati non predicono il futuro.</div></div>
 </main>
 
 <div class="modal-overlay" id="modal-position" onclick="overlayClick(event,'position')"><div class="modal">
@@ -2190,7 +2191,7 @@ var IDEAL_PROFILES = [
    desc:'Orientato alla crescita di lungo periodo. Quota azionaria alta con piccola componente difensiva in oro.',
    detail:'Per chi ha un orizzonte 10+ anni e tollera la volatilità.',
    w:{glob:55,em:15,eu:0,bondlt:10,bondct:5,gold:10,cash:5,comm:0,btc:0}},
-  {id:'dyn',  name:'Dinamico',   icon:'🚀', color:'#f97316',
+  {id:'dyn',  name:'Alto Rischio', icon:'⚡', color:'#f97316',
    desc:'Massima crescita nel lungo periodo. Esposizione azionaria elevata, componente difensiva minima.',
    detail:'Solo per chi ha 15+ anni di orizzonte e nervi saldi durante i drawdown.',
    w:{glob:65,em:15,eu:0,bondlt:5,bondct:0,gold:10,cash:5,comm:0,btc:0}},
@@ -2992,7 +2993,7 @@ function renderCompareChart(){
       kpiCard('🟡 '+IDEAL_STATE.profile.icon+' '+IDEAL_STATE.profile.name,'#e8b84b',btI)+
     '</div>'+
     '<div style="font-size:10px;color:#4a5568;margin-bottom:8px">Backtest '+years+' anni · PAC '+Math.round(monthly).toLocaleString('it-IT')+'€/mese · dati storici reali</div>'+
-    '<div style="height:200px;position:relative"><canvas id="ch-compare"></canvas></div>'+
+    '<div style="height:280px;position:relative"><canvas id="ch-compare"></canvas></div>'+
     '<div style="font-size:10px;color:#4a5568;margin-top:8px;line-height:1.5">I rendimenti passati non predicono il futuro. Questo confronto è a scopo educativo.</div>';
   requestAnimationFrame(function(){
     var ctx=document.getElementById('ch-compare');if(!ctx)return;
@@ -3844,6 +3845,7 @@ function iShowGuided(){
   document.getElementById('ideal-stepper-wrap').style.display='block';
   // Va sempre al quiz quando l'utente clicca esplicitamente
   iGoStep('quiz');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function iShowExplore(){
@@ -7376,6 +7378,133 @@ function initBacktestTab(){
     if(typeof loadProxyData==='function')loadProxyData().then(function(){if(status)status.innerHTML='<span style="color:#4ade9e">\u2713</span> Dati storici pronti';});
   } else {
     if(status)status.innerHTML='<span style="color:#4ade9e">\u2713</span> Dati storici pronti';
+  }
+}
+
+
+// ─── FUNZIONI AGGIUNTE ────────────────────────────────────────────────────────
+function dashLoadAndRender(){
+  var hasCache=typeof PC!=='undefined'&&Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;});
+  if(!hasCache)hasCache=typeof loadPCFromStorage==='function'&&loadPCFromStorage();
+  if(hasCache){
+    rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();
+    if(typeof loadPCData==='function')loadPCData().then(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();}).catch(function(){});
+  } else {
+    var ph=document.getElementById('dash-perf-placeholder');
+    if(ph){ph.style.cssText='display:flex;align-items:center;justify-content:center';
+      ph.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px">'+
+        '<div style="position:relative;width:90px;height:90px">'+
+          '<svg style="transform:rotate(-90deg)" width="90" height="90" viewBox="0 0 90 90">'+
+            '<circle fill="none" stroke="#1e2d40" stroke-width="5" cx="45" cy="45" r="40"/>'+
+            '<circle id="pac-ring-fill" fill="none" stroke="#e8b84b" stroke-width="5" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251" cx="45" cy="45" r="40" style="transition:stroke-dashoffset .5s ease"/>'+
+          '</svg>'+
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'+
+            '<span id="pac-ring-pct" style="font-size:18px;font-weight:800;color:#e8b84b">0%</span></div></div>'+
+        '<div id="pac-ring-sub" style="font-size:12px;color:#7a90a8">Download da Yahoo Finance...</div></div>';}
+    function setR(p,l){var f=document.getElementById('pac-ring-fill'),pt=document.getElementById('pac-ring-pct'),s=document.getElementById('pac-ring-sub');
+      if(f)f.style.strokeDashoffset=251-(251*Math.min(p,100)/100);if(pt)pt.textContent=Math.round(p)+'%';if(s&&l)s.textContent=l;}
+    setR(15,'Connessione a Yahoo Finance...');
+    if(typeof loadPCData==='function')loadPCData()
+      .then(function(){setR(100,'Completato!');setTimeout(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();},400);})
+      .catch(function(){if(ph)ph.innerHTML='<div style="padding:20px;text-align:center"><div style="font-size:24px">⚠️</div><div style="font-size:12px;color:#f87171">Errore caricamento</div><button onclick="dashLoadAndRender()" style="margin-top:10px;padding:6px 14px;background:#161e2e;border:1px solid #263040;border-radius:6px;color:#7a90a8;cursor:pointer;font-size:11px">↺ Riprova</button></div>';});
+  }
+}
+
+function openOvTransactions(){
+  var ov=document.getElementById('ov-transactions');if(!ov)return;
+  ov.style.display='block';document.body.style.overflow='hidden';
+  var tbody=document.getElementById('ov-tx-body');if(!tbody)return;
+  var rows=S.transactions.slice().reverse().map(function(t){
+    var pos=S.positions.find(function(p){return p.id===t.positionId;})||{name:'—',ticker:'—'};
+    var tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
+    return '<tr>'+
+      '<td style="padding:7px 8px">'+dt(t.date||'')+'</td>'+
+      '<td style="padding:7px 8px;font-weight:600;color:#e8e9ea">'+esc(pos.name)+'</td>'+
+      '<td style="padding:7px 8px;text-align:right">'+fNum(parseNum(t.shares),4)+'</td>'+
+      '<td style="padding:7px 8px;text-align:right">'+fEur(parseNum(t.price))+'</td>'+
+      '<td style="padding:7px 8px;text-align:right">'+fEur(parseNum(t.fees)||0)+'</td>'+
+      '<td style="padding:7px 8px;text-align:right;font-weight:700">'+fEur(tot)+'</td>'+
+      '<td style="padding:7px 8px">'+
+        '<button data-edit-tx="'+t.id+'" style="background:none;border:none;color:#7a90a8;cursor:pointer;font-size:13px;margin-right:4px">✏</button>'+
+        '<button data-del-tx="'+t.id+'" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:13px">✕</button>'+
+      '</td></tr>';
+  }).join('');
+  tbody.innerHTML=rows||'<tr><td colspan="7" style="text-align:center;color:#4a5568;padding:20px">Nessuna transazione</td></tr>';
+  var tbl=tbody.closest('table');
+  if(tbl)tbl.onclick=function(ev){
+    var eb=ev.target.closest('[data-edit-tx]');if(eb&&typeof openEditTx==='function'){openEditTx(eb.getAttribute('data-edit-tx'));return;}
+    var db=ev.target.closest('[data-del-tx]');if(db&&typeof deleteTx==='function'){deleteTx(db.getAttribute('data-del-tx'));openOvTransactions();}
+  };
+}
+
+function openOvReport(){
+  var ov=document.getElementById('ov-report');if(!ov)return;
+  ov.style.display='block';document.body.style.overflow='hidden';
+  var body=document.getElementById('ov-report-body');if(!body)return;
+  var cp=computeAll(),tv=cp.reduce(function(s,p){return s+(p.currentVal||0);},0),ti=cp.reduce(function(s,p){return s+(p.totalCost||0);},0),tg=tv-ti;
+  var kpis='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'+
+    [['Valore',fEur(tv),'#e8e9ea'],['Investito',fEur(ti),'#7a90a8'],['Gain/Loss',(tg>=0?'+':'')+fEur(tg),tg>=0?'#4ade9e':'#f87171']].map(function(k){
+      return '<div style="background:#161e2e;border-radius:10px;padding:12px"><div style="font-size:10px;color:#7a90a8;margin-bottom:4px">'+k[0]+'</div><div style="font-size:18px;font-weight:800;color:'+k[2]+'">'+k[1]+'</div></div>';
+    }).join('')+'</div>';
+  var posRows=cp.map(function(p){
+    return '<tr style="border-bottom:1px solid #161e2e"><td style="padding:8px;color:#e8e9ea;font-weight:600">'+esc(p.name||'—')+'</td>'+
+      '<td style="padding:8px;color:#7a90a8;font-size:11px">'+dt(p.ticker||'—')+'</td>'+
+      '<td style="padding:8px;text-align:right;font-size:12px">'+fNum(p.totalShares,4)+'</td>'+
+      '<td style="padding:8px;text-align:right;font-weight:700">'+fEur(p.currentVal||0)+'</td>'+
+      '<td style="padding:8px;text-align:right;color:'+(p.gainPct>=0?'#4ade9e':'#f87171')+'">'+fPct(p.gainPct||0)+'</td></tr>';
+  }).join('');
+  body.innerHTML=kpis+
+    '<div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Posizioni</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr>'+['Strumento','Ticker','Quote','Valore','Gain%'].map(function(h){return '<th style="padding:8px;text-align:left;color:#4a5568;border-bottom:1px solid #263040;font-size:10px">'+h+'</th>';}).join('')+'</tr></thead>'+
+    '<tbody>'+posRows+'</tbody></table></div>';
+}
+
+function initBacktestTab(){
+  var classicEl=document.getElementById('bt-classic-list');
+  if(classicEl&&typeof FAMOUS_PORTFOLIOS!=='undefined'){
+    var items='';
+    FAMOUS_PORTFOLIOS.forEach(function(p){
+      items+='<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px">'+
+        '<input type="checkbox" class="bt-check-classic" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px">'+
+        '<span style="font-size:13px;color:#e8e9ea">'+p.icon+' '+p.name+'</span></label>';
+    });
+    classicEl.innerHTML=items;
+  }
+  var savedEl=document.getElementById('bt-saved-list');
+  if(savedEl){
+    var saved=loadSavedPortfolios().filter(function(p){return !p.auto;});
+    if(!saved.length){
+      savedEl.innerHTML='<div style="font-size:12px;color:#4a5568;padding:4px 0">Nessun portafoglio salvato.</div>';
+    } else {
+      var sitems='';
+      saved.forEach(function(p){
+        var pr=(IDEAL_PROFILES&&IDEAL_PROFILES.find(function(x){return x.id===p.profile;}))||{icon:'📊',name:p.name};
+        sitems+='<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px">'+
+          '<input type="checkbox" class="bt-check-saved" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px">'+
+          '<span style="font-size:13px;color:#e8e9ea">'+pr.icon+' '+p.name+'</span></label>';
+      });
+      savedEl.innerHTML=sitems;
+    }
+  }
+  var status=document.getElementById('bt-proxy-status');
+  var hasData=typeof PROXY_MONTHLY!=='undefined'&&Object.keys(PROXY_MONTHLY).some(function(k){return PROXY_MONTHLY[k]&&PROXY_MONTHLY[k].length>0;});
+  function updateBtStatus(){
+    var maxYrs=0;
+    if(typeof PROXY_MONTHLY!=='undefined'){
+      Object.values(PROXY_MONTHLY).forEach(function(arr){if(arr&&arr.length)maxYrs=Math.max(maxYrs,Math.round(arr.length/12));});
+    }
+    var yrsEl=document.getElementById('bt-data-years');
+    if(yrsEl)yrsEl.textContent=maxYrs>0?maxYrs+' anni':'—';
+    if(status)status.innerHTML=maxYrs>0
+      ?'<span style="color:#4ade9e">✓</span> <strong>'+maxYrs+' anni</strong> di dati storici reali pronti'
+      :'<span style="color:#e8b84b">⏳</span> Caricamento dati storici...';
+  }
+  if(!hasData){
+    updateBtStatus();
+    if(typeof loadProxyData==='function')loadProxyData().then(function(){updateBtStatus();});
+  } else {
+    updateBtStatus();
   }
 }
 </script>
