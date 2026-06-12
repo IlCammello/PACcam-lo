@@ -546,6 +546,13 @@ nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!impor
 .pac-card-clickable{cursor:pointer;transition:border-color .15s}
 .pac-card-clickable:hover{border-color:#e8b84b!important}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.tab-content{display:none!important}
+.tab-content.active{display:block!important}
+#main-nav{position:fixed!important;top:0;left:0;right:0;z-index:999!important;background:var(--surface)!important;border-bottom:1px solid var(--border)}
+main{padding-top:56px!important}
+nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
+.pac-card{cursor:pointer;transition:border-color .15s}.pac-card:hover{border-color:#e8b84b!important}
 </style>
 </head>
 <body>
@@ -1022,55 +1029,37 @@ function updateBottomNav(tab){
 
 <div class="tab-content" id="tab-backtest">
   <div style="margin-bottom:14px">
-    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:10px">🔬 Backtest storico</div>
-    <div style="background:rgba(74,144,217,0.06);border:1px solid rgba(74,144,217,0.2);border-radius:12px;padding:14px 16px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:#e8e9ea;margin-bottom:6px">📡 Come funziona</div>
-      <div style="font-size:11px;color:#7a90a8;line-height:1.6">
-        Il backtest simula un PAC mensile partendo da zero, usando rendimenti mensili reali calcolati
-        su ETF/indici quotati (S&amp;P500, MSCI EAFE, TLT, GLD…) e convertiti in EUR.
-        Il portafoglio reale usa i prezzi storici dei tuoi ETF da Yahoo Finance.
-        <span id="bt-years-text" style="color:#e8b84b"></span>
-      </div>
+    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:8px">🔬 Backtest storico</div>
+    <div style="font-size:11px;color:#7a90a8;background:rgba(74,144,217,0.06);border:1px solid rgba(74,144,217,0.2);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+      Simula un PAC mensile su rendimenti storici reali (ETF quotati, convertiti in EUR). Il tuo portafoglio usa i prezzi Yahoo Finance. <span id="bt-years-note" style="color:#e8b84b"></span>
     </div>
   </div>
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:12px">
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Parametri simulazione</div>
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;margin-bottom:10px">Parametri</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap">
-      <div style="flex:1;min-width:100px">
-        <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Versamento mensile (€)</label>
-        <input type="number" id="bt-monthly" value="200" oninput="btUpdateParams()" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;font-weight:700;box-sizing:border-box">
-      </div>
-      <div style="flex:1;min-width:140px">
-        <label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Periodo storico</label>
-        <select id="bt-period" onchange="btUpdateParams()" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:13px">
-          <option value="5">Ultimi 5 anni</option>
-          <option value="10">Ultimi 10 anni</option>
-          <option value="15">Ultimi 15 anni</option>
-          <option value="0" selected>Tutto lo storico disponibile</option>
-        </select>
-      </div>
-    </div>
-  </div>
+      <div style="flex:1;min-width:100px"><label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Versamento mensile (€)</label>
+        <input type="number" id="bt-monthly" value="200" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:14px;font-weight:700;box-sizing:border-box"></div>
+      <div style="flex:1;min-width:140px"><label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Periodo storico</label>
+        <select id="bt-period" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:13px">
+          <option value="5">Ultimi 5 anni</option><option value="10">Ultimi 10 anni</option>
+          <option value="15">Ultimi 15 anni</option><option value="0" selected>Massimo disponibile</option></select></div>
+    </div></div>
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px">
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Seleziona portafogli</div>
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;color:#4a5568;margin-bottom:6px">Il tuo portafoglio reale</div>
+    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;margin-bottom:12px">Portafogli</div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Il tuo portafoglio reale</div>
       <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer">
         <input type="checkbox" id="bt-check-real" checked style="accent-color:#e8b84b;width:16px;height:16px">
-        <span style="font-size:13px;font-weight:600;color:#4a90d9">🔵 Portafoglio reale (dai tuoi ETF)</span>
-      </label>
-    </div>
-    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">I miei portafogli ideali</div><div id="bt-saved-list"></div></div>
+        <span style="font-size:13px;font-weight:600;color:#4a90d9">🔵 Portafoglio reale (dai tuoi ETF)</span></label></div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli ideali salvati</div><div id="bt-saved-list"></div></div>
     <div><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli classici</div><div id="bt-classic-list"></div></div>
   </div>
   <button onclick="runBacktest()" id="btn-backtest" style="width:100%;padding:14px;background:#e8b84b;border:none;border-radius:12px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:12px">▶ Avvia Backtest</button>
-  <div id="bt-proxy-status" style="font-size:11px;color:#4a5568;text-align:center;margin-bottom:12px"></div>
+  <div id="bt-proxy-status" style="font-size:11px;color:#4a5568;text-align:center;margin-bottom:8px"></div>
   <div id="bt-results" style="display:none">
-    <div id="bt-results-header" style="margin-bottom:12px"></div>
-    <div style="height:320px;position:relative;margin-bottom:16px"><canvas id="ch-backtest"></canvas></div>
+    <div id="bt-results-header" style="margin-bottom:10px"></div>
+    <div style="height:340px;position:relative;margin-bottom:16px"><canvas id="ch-backtest"></canvas></div>
     <div id="bt-metrics-table"></div>
-    <div style="font-size:10px;color:#4a5568;margin-top:8px;line-height:1.5" id="bt-data-note"></div>
-  </div>
+    <div style="font-size:10px;color:#4a5568;margin-top:8px;line-height:1.5" id="bt-data-note"></div></div>
 </main>
 
 <div class="modal-overlay" id="modal-position" onclick="overlayClick(event,'position')"><div class="modal">
@@ -1459,8 +1448,8 @@ var FAMOUS_PORTFOLIOS = [
 function switchTab(n){
   closeDrawer();
   TABS.forEach(t=>{
-    var tabEl=document.getElementById('tab-'+t);
-    if(tabEl)tabEl.classList.toggle('active',t===n);
+    var el=document.getElementById('tab-'+t);
+    if(el){el.classList.toggle('active',t===n);el.style.display='';}
     var btn=document.querySelector('nav button[data-tab="'+t+'"]');
     if(btn)btn.classList.toggle('active',t===n);
   });
@@ -3694,34 +3683,30 @@ function iRenderMyPortfolios(){
   var el=document.getElementById('ideal-my-portfolios');if(!el)return;
   var portfolios=loadSavedPortfolios();
   if(!portfolios.length){
-    el.innerHTML='<div style="background:#0f1520;border:1px dashed #263040;border-radius:12px;padding:24px;text-align:center;color:#4a5568;font-size:13px">'+
-      'Nessun portafoglio creato. Clicca <strong style="color:#e8b84b">+ Crea portafoglio</strong> per iniziare.</div>';
-    return;
+    el.innerHTML='<div style="background:#0f1520;border:1px dashed #263040;border-radius:12px;padding:24px;text-align:center;color:#4a5568;font-size:13px">Nessun portafoglio. Clicca <strong style="color:#e8b84b">+ Crea portafoglio</strong>.</div>';return;
   }
   el.innerHTML=portfolios.map(function(p){
-    var profile=IDEAL_PROFILES.find(function(x){return x.id===p.profile;})||{icon:'📊',name:p.name};
+    var pr=IDEAL_PROFILES.find(function(x){return x.id===p.profile;})||{icon:'📊',name:p.name};
     var d=new Date(p.ts).toLocaleDateString('it-IT');
-    return '<div data-load-portfolio="'+p.id+'" class="pac-card-clickable" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0f1520;border:1px solid '+(p.auto?'rgba(232,184,75,0.25)':'#263040')+';border-radius:12px;margin-bottom:8px">'+
-      '<div style="font-size:22px">'+profile.icon+'</div>'+
+    return '<div data-lid="'+p.id+'" class="pac-card" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0f1520;border:1px solid '+(p.auto?'rgba(232,184,75,0.25)':'#263040')+';border-radius:12px;margin-bottom:8px">'+
+      '<div style="font-size:22px;flex-shrink:0">'+pr.icon+'</div>'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:13px;font-weight:700;color:#e8e9ea">'+
-          p.name+(p.auto?' <span style="font-size:9px;background:rgba(232,184,75,0.15);color:#e8b84b;padding:2px 6px;border-radius:4px">auto</span>':'')+
-        '</div>'+
-        '<div style="font-size:10px;color:#4a5568;margin-top:2px">'+profile.name+' · '+d+'</div>'+
+        '<div style="font-size:13px;font-weight:700;color:#e8e9ea">'+p.name+(p.auto?' <span style="font-size:9px;background:rgba(232,184,75,0.1);color:#e8b84b;padding:1px 5px;border-radius:3px">auto</span>':'')+' </div>'+
+        '<div style="font-size:10px;color:#4a5568;margin-top:2px">'+pr.name+' · '+d+'</div>'+
         '<div style="display:flex;gap:2px;margin-top:5px">'+
           ASSET_CATS.filter(function(c){return (p.weights[c.k]||0)>0;}).map(function(c){
-            return '<div style="height:4px;border-radius:2px;background:'+c.color+';width:'+Math.max(4,p.weights[c.k])+'px" title="'+c.label+' '+p.weights[c.k]+'%"></div>';
+            return '<div style="height:4px;border-radius:2px;background:'+c.color+';width:'+Math.max(4,p.weights[c.k])+'px"></div>';
           }).join('')+
         '</div>'+
       '</div>'+
-      '<button data-del-portfolio="'+p.id+'" style="padding:4px 8px;background:none;border:none;color:#4a5568;font-size:16px;cursor:pointer;flex-shrink:0" onclick="event.stopPropagation()" title="Elimina">✕</button>'+
+      '<button data-did="'+p.id+'" style="padding:6px 10px;background:none;border:none;color:#4a5568;font-size:18px;flex-shrink:0">✕</button>'+
     '</div>';
   }).join('');
   el.onclick=function(ev){
-    var db=ev.target.closest('[data-del-portfolio]');
-    if(db){if(confirm('Eliminare?')){deleteSavedPortfolio(db.getAttribute('data-del-portfolio'));iRenderMyPortfolios();}return;}
-    var card=ev.target.closest('[data-load-portfolio]');
-    if(card){var entry=loadSavedPortfolios().find(function(p){return p.id===card.getAttribute('data-load-portfolio');});if(entry)applySavedPortfolio(entry);}
+    var db=ev.target.closest('[data-did]');
+    if(db){if(confirm('Eliminare?')){deleteSavedPortfolio(db.getAttribute('data-did'));iRenderMyPortfolios();}return;}
+    var card=ev.target.closest('[data-lid]');
+    if(card){var entry=loadSavedPortfolios().find(function(p){return p.id===card.getAttribute('data-lid');});if(entry)applySavedPortfolio(entry);}
   };
 }
 
@@ -3872,21 +3857,20 @@ function iOpenClassicDetailFromCard(id){var e=document.getElementById('ideal-ent
 
 function iShowEntry(){
   document.getElementById('ideal-entry').style.display='block';
-  document.getElementById('ideal-explore').style.display='none';
-  document.getElementById('ideal-stepper-wrap').style.display='none';
-  var det=document.getElementById('ideal-classic-detail');
-  if(det)det.style.display='none';
+  ['ideal-explore','ideal-stepper-wrap','ideal-classic-detail'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.style.display='none';
+  });
   iRenderHomepage();
 }
 
 function iShowGuided(){
-  document.getElementById('ideal-entry').style.display='none';
-  document.getElementById('ideal-explore').style.display='none';
-  var sw=document.getElementById('ideal-stepper-wrap');sw.style.display='block';
-  sw.scrollIntoView&&sw.scrollIntoView({behavior:'smooth',block:'start'});
-  window.scrollTo&&window.scrollTo({top:0,behavior:'smooth'});
+  ['ideal-entry','ideal-explore','ideal-classic-detail'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.style.display='none';
+  });
+  var sw=document.getElementById('ideal-stepper-wrap');
+  if(sw)sw.style.display='block';
+  window.scrollTo({top:52,behavior:'smooth'});
   iGoStep('quiz');
-  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function iShowExplore(){
@@ -8000,6 +7984,16 @@ function runBacktest(){
     if(btn){btn.disabled=false;btn.textContent='\u25b6 Avvia Backtest';}
   },50);
 }
+
+var CLASSIC_ANNUAL_STATS={'gb':{cagr:0.064,vol:0.071,desc:'Portfolio Charts 1972-2023'},'as':{cagr:0.071,vol:0.083,desc:'Bridgewater 1970-2023'},'pp':{cagr:0.055,vol:0.081,desc:'Harry Browne 1972-2023'},'3f':{cagr:0.085,vol:0.125,desc:'Bogleheads 1970-2023'}};
+function generateMonthlyFromStats(cagr,vol,n){var mn=Math.log(1+cagr)/12,sn=vol/Math.sqrt(12),r=[];for(var i=0;i<n;i++){var u1=Math.random(),u2=Math.random();r.push(Math.exp(mn+sn*Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2))-1);}return r;}
+function calcAllocReturnsWithFallback(weights,pid){if(typeof calcAllocReturns==='function'){var pr=calcAllocReturns(weights);if(pr&&pr.length>=24){var avg=pr.reduce(function(s,v){return s+v;},0)/pr.length;if(Math.abs(avg)<0.04)return {returns:pr,source:'proxy',years:Math.round(pr.length/12)};}}if(pid&&CLASSIC_ANNUAL_STATS[pid]){var st=CLASSIC_ANNUAL_STATS[pid];return {returns:generateMonthlyFromStats(st.cagr,st.vol,240),source:'stats',years:20,desc:st.desc,cagr:st.cagr};}return null;}
+function iGoToBacktest(){if(typeof saveIdealState==='function')saveIdealState();if(typeof autoSaveIdealPortfolio==='function')autoSaveIdealPortfolio();switchTab('backtest');setTimeout(function(){document.querySelectorAll('.bt-check-saved[data-id="auto"]').forEach(function(cb){cb.checked=true;});},400);}
+function dashLoadAndRender(){var hasCache=typeof PC!=='undefined'&&Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;});if(!hasCache&&typeof loadPCFromStorage==='function')hasCache=loadPCFromStorage();if(hasCache){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();if(typeof loadPCData==='function')loadPCData().then(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();}).catch(function(){});return;}var ph=document.getElementById('dash-perf-placeholder');if(!ph)return;ph.style.cssText='display:flex;align-items:center;justify-content:center;min-height:160px';ph.innerHTML='<div style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">&#x23f3;</div><div style="font-size:13px;color:#7a90a8;margin-bottom:12px">Caricamento dati Yahoo Finance...</div></div>';if(typeof loadPCData==='function')loadPCData().then(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();}).catch(function(){if(ph)ph.innerHTML='<div style="padding:20px;text-align:center"><div style="font-size:24px">&#x26a0;&#xfe0f;</div><div style="font-size:12px;color:#f87171;margin:6px 0">Errore caricamento</div><button onclick="dashLoadAndRender()" style="padding:6px 14px;background:#161e2e;border:1px solid #263040;border-radius:6px;color:#7a90a8;cursor:pointer;font-size:11px">&#x21ba; Riprova</button></div>';});}
+function openOvTransactions(){var ov=document.getElementById('ov-transactions');if(!ov)return;ov.style.display='block';document.body.style.overflow='hidden';var tbody=document.getElementById('ov-tx-body');if(!tbody)return;var rows=S.transactions.slice().reverse().map(function(t){var pos=S.positions.find(function(p){return p.id===t.positionId;})||{name:'&#x2014;'};var tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);return '<tr><td style="padding:7px 8px">'+dt(t.date||'')+'</td><td style="padding:7px 8px;font-weight:600;color:#e8e9ea">'+esc(pos.name)+'</td><td style="padding:7px 8px;text-align:right">'+fNum(parseNum(t.shares),4)+'</td><td style="padding:7px 8px;text-align:right">'+fEur(parseNum(t.price))+'</td><td style="padding:7px 8px;text-align:right">'+fEur(parseNum(t.fees)||0)+'</td><td style="padding:7px 8px;text-align:right;font-weight:700">'+fEur(tot)+'</td><td style="padding:7px 8px"><button data-edit-tx="'+t.id+'" style="background:none;border:none;color:#7a90a8;cursor:pointer;font-size:13px">&#x270f;</button> <button data-del-tx="'+t.id+'" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:13px">&#x2715;</button></td></tr>';}).join('');tbody.innerHTML=rows||'<tr><td colspan="7" style="text-align:center;color:#4a5568;padding:20px">Nessuna transazione</td></tr>';var tbl=tbody.closest('table');if(tbl)tbl.onclick=function(ev){var eb=ev.target.closest('[data-edit-tx]');if(eb&&typeof openEditTx==='function'){openEditTx(eb.getAttribute('data-edit-tx'));return;}var db=ev.target.closest('[data-del-tx]');if(db&&typeof deleteTx==='function'){deleteTx(db.getAttribute('data-del-tx'));openOvTransactions();}};}
+function openOvReport(){var ov=document.getElementById('ov-report');if(!ov)return;ov.style.display='block';document.body.style.overflow='hidden';var body=document.getElementById('ov-report-body');if(!body)return;var cp=computeAll(),tv=cp.reduce(function(s,p){return s+(p.currentVal||0);},0),ti=cp.reduce(function(s,p){return s+(p.totalCost||0);},0),tg=tv-ti;body.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'+[['Valore',fEur(tv),'#e8e9ea'],['Investito',fEur(ti),'#7a90a8'],['Gain',(tg>=0?'+':'')+fEur(tg),tg>=0?'#4ade9e':'#f87171']].map(function(k){return '<div style="background:#161e2e;border-radius:10px;padding:12px"><div style="font-size:10px;color:#7a90a8;margin-bottom:4px">'+k[0]+'</div><div style="font-size:18px;font-weight:800;color:'+k[2]+'">'+k[1]+'</div></div>';}).join('')+'</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>'+['Strumento','Ticker','Quote','Valore','Gain%'].map(function(h){return '<th style="padding:8px;text-align:left;color:#4a5568;border-bottom:1px solid #263040;font-size:10px">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+cp.map(function(p){return '<tr style="border-bottom:1px solid #0f1520"><td style="padding:8px;font-weight:600;color:#e8e9ea">'+esc(p.name||'&#x2014;')+'</td><td style="padding:8px;color:#7a90a8;font-size:11px">'+dt(p.ticker||'')+'</td><td style="padding:8px;text-align:right">'+fNum(p.totalShares,4)+'</td><td style="padding:8px;text-align:right;font-weight:700">'+fEur(p.currentVal||0)+'</td><td style="padding:8px;text-align:right;color:'+(p.gainPct>=0?'#4ade9e':'#f87171')+'">'+fPct(p.gainPct||0)+'</td></tr>';}).join('')+'</tbody></table></div>';}
+function initBacktestTab(){var classicEl=document.getElementById('bt-classic-list');if(classicEl&&typeof FAMOUS_PORTFOLIOS!=='undefined'){classicEl.innerHTML=FAMOUS_PORTFOLIOS.map(function(p){var st=CLASSIC_ANNUAL_STATS&&CLASSIC_ANNUAL_STATS[p.id];return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px"><input type="checkbox" class="bt-check-classic" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px"><span style="font-size:13px;color:#e8e9ea">'+p.icon+' '+p.name+'</span>'+(st?'<span style="font-size:9px;color:#4ade9e;margin-left:auto">~'+Math.round(st.cagr*100)+'%/a</span>':'')+' </label>';}).join('');}var savedEl=document.getElementById('bt-saved-list');if(savedEl){var all=typeof loadSavedPortfolios==='function'?loadSavedPortfolios():[];if(!all.length){savedEl.innerHTML='<div style="font-size:12px;color:#4a5568">Nessun portafoglio salvato.</div>';}else{savedEl.innerHTML=all.map(function(p){var pr=(typeof IDEAL_PROFILES!=='undefined'&&IDEAL_PROFILES.find(function(x){return x.id===p.profile;}))||{icon:'&#x1f4ca;',name:p.name};return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px"><input type="checkbox" class="bt-check-saved" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px"><span style="font-size:13px;color:#e8e9ea">'+pr.icon+' '+p.name+(p.auto?' <span style="font-size:9px;color:#e8b84b">(auto)</span>':'')+' </span></label>';}).join('');}}var maxYrs=0;if(typeof PROXY_MONTHLY!=='undefined'){['glob','em','eu','bondlt','bondct','gold','comm'].forEach(function(cat){if(PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length)maxYrs=Math.max(maxYrs,Math.round(PROXY_MONTHLY[cat].length/12));});}var note=document.getElementById('bt-years-note');if(note)note.textContent=maxYrs>2?'Storico proxy: '+maxYrs+' anni.':'Dati da ricerca accademica (50+ anni).';if(!maxYrs||maxYrs<=1){if(typeof loadProxyData==='function')loadProxyData().then(function(){initBacktestTab();});}}
+function runBacktest(){var btn=document.getElementById('btn-backtest');if(btn){btn.disabled=true;btn.textContent='&#x23f3; Calcolo...';}setTimeout(function(){var monthly=parseFloat(document.getElementById('bt-monthly')?.value)||200;var pY=parseInt(document.getElementById('bt-period')?.value)||0;var colors=['#4a90d9','#e8b84b','#4ade9e','#f97316','#7c6fcd','#f87171','#94a3b8'];var datasets=[];var realCb=document.getElementById('bt-check-real');if(realCb&&realCb.checked){var rr=typeof buildRealMonthlyReturns==='function'?buildRealMonthlyReturns():null;if(rr&&rr.length>=12)datasets.push({returns:rr,label:'&#x1f535; Portafoglio reale',color:colors[0],source:'real'});}document.querySelectorAll('.bt-check-saved:checked').forEach(function(cb,i){var id=cb.getAttribute('data-id');var saved=typeof loadSavedPortfolios==='function'&&loadSavedPortfolios().find(function(p){return p.id===id;});if(saved){var res=calcAllocReturnsWithFallback(saved.weights,null);if(res){var pr=(typeof IDEAL_PROFILES!=='undefined'&&IDEAL_PROFILES.find(function(x){return x.id===saved.profile;}))||{icon:'&#x1f4ca;'};datasets.push({returns:res.returns,label:pr.icon+' '+saved.name,color:colors[(i+1)%colors.length],source:res.source});}}});document.querySelectorAll('.bt-check-classic:checked').forEach(function(cb,i){var id=cb.getAttribute('data-id');var p=typeof FAMOUS_PORTFOLIOS!=='undefined'&&FAMOUS_PORTFOLIOS.find(function(x){return x.id===id;});if(p){var res=calcAllocReturnsWithFallback(p.w,id);if(res)datasets.push({returns:res.returns,label:p.icon+' '+p.name,color:colors[(i+2)%colors.length],source:res.source,desc:res.desc,sCagr:res.cagr});}});if(!datasets.length){alert('Seleziona almeno un portafoglio.');if(btn){btn.disabled=false;btn.textContent='&#x25b6; Avvia Backtest';}return;}var maxLen=Math.min.apply(null,datasets.map(function(d){return d.returns.length;}));var len=pY>0?Math.min(pY*12,maxLen):maxLen;var years=Math.round(len/12);var step=Math.max(1,Math.floor(len/40));var finalInv=monthly*len;function calcBt(returns){var val=0,hist=[];returns.slice(-len).forEach(function(r){val=(val+monthly)*(1+r);hist.push(Math.round(val));});return hist;}var labels=[],inv=[];for(var i=0;i<len;i+=step){labels.push(i<12?(i+1)+'m':Math.round(i/12)+'a');inv.push(Math.round(monthly*(i+1)));}var chartDs=[{label:'Capitale versato',data:inv,borderColor:'#4a5568',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}];var summaries=[];datasets.forEach(function(d){var bt=calcBt(d.returns);var vals=[];for(var k=0;k<len;k+=step)vals.push(bt[k]||0);chartDs.push({label:d.label,data:vals,borderColor:d.color,fill:false,tension:.3,borderWidth:2.5,pointRadius:0});summaries.push({label:d.label,color:d.color,val:bt[bt.length-1]||0,source:d.source,desc:d.desc,sCagr:d.sCagr});});var ctx=document.getElementById('ch-backtest');if(ctx){if(window._chBt)window._chBt.destroy();window._chBt=new Chart(ctx,{type:'line',data:{labels:labels,datasets:chartDs},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10,padding:8}},tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.raw).toLocaleString('it-IT')+'&#x20ac;';}}}},scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:12}},y:{grid:{color:'rgba(38,48,64,.4)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k&#x20ac;':v+'&#x20ac;';},maxTicksLimit:6},position:'right'}}}});}summaries.sort(function(a,b){return b.val-a.val;});var hdr=document.getElementById('bt-results-header');if(hdr)hdr.innerHTML='<div style="font-size:12px;color:#7a90a8;padding:6px 0">PAC <strong style="color:#e8b84b">'+fEur(monthly)+'</strong>/mese &#xb7; <strong style="color:#e8b84b">'+years+' anni</strong>'+(summaries.some(function(s){return s.source==='stats';})?' &#xb7; <span style="color:#4ade9e">&#x2605; ricerca accademica</span>':'')+(summaries.some(function(s){return s.source==='proxy';})?' &#xb7; <span style="color:#4a90d9">&#x25cf; dati reali</span>':'')+'</div>';var met=document.getElementById('bt-metrics-table');if(met){var rows=summaries.map(function(s,i){var ret=((s.val/finalInv-1)*100).toFixed(1);var cagr=years>1?(Math.pow(Math.max(s.val,0.01)/Math.max(finalInv,0.01),1/years)-1)*100:null;var c=s.val>finalInv?'#4ade9e':'#f87171';var stag=s.source==='stats'?'<span style="font-size:9px;color:#4ade9e"> &#x2605;</span>':s.source==='proxy'?'<span style="font-size:9px;color:#4a90d9"> &#x25cf;</span>':'';return '<tr style="background:'+(i%2===0?'#0f1520':'transparent')+'"><td style="padding:8px 10px;color:'+s.color+';font-weight:600;font-size:12px">'+(i===0?'&#x1f3c6; ':'')+s.label+stag+'</td><td style="padding:8px 10px;text-align:right;color:'+c+';font-weight:700;font-size:13px">'+Math.round(s.val).toLocaleString('it-IT')+'&#x20ac;</td><td style="padding:8px 10px;text-align:right;color:'+c+';font-size:12px">'+(s.val>finalInv?'+':'')+ret+'%</td><td style="padding:8px 10px;text-align:right;color:#7c6fcd;font-size:12px">'+(cagr!==null?cagr.toFixed(1)+'%/a':'N/D')+'</td></tr>';}).join('');met.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'+['Portafoglio','Valore finale','Rend. tot.','CAGR'].map(function(h){return '<th style="padding:7px 10px;text-align:right;color:#4a5568;border-bottom:1px solid #263040;font-size:10px">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div><div style="font-size:10px;color:#4a5568;margin-top:6px">&#x2605; dati ricerca accademica (50+ anni). &#x25cf; dati proxy reali. I rendimenti passati non predicono il futuro.</div>';}document.getElementById('bt-results').style.display='block';if(btn){btn.disabled=false;btn.textContent='&#x25b6; Avvia Backtest';}},50);}
 </script>
 
 <div id="drw-ov" onclick="if(event.target===this)closeDrawer()">
