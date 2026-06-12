@@ -530,6 +530,14 @@ nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!impor
 nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
 .classic-card-item:hover,.portfolio-card-item:hover{border-color:#e8b84b!important;transition:border-color .15s}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+#main-nav{position:fixed!important;top:0;left:0;right:0;z-index:999;background:var(--surface)!important}
+main{padding-top:56px}
+.tab-content.active{display:block!important}
+nav button.active{background:rgba(232,184,75,0.12)!important;color:#e8b84b!important;border-bottom:2px solid #e8b84b}
+.portfolio-card-item{cursor:pointer}.portfolio-card-item:hover,.classic-card-item:hover{border-color:#e8b84b!important;transition:border-color .15s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pac-ring-fill{fill:none;stroke:#e8b84b;stroke-width:5;stroke-linecap:round;stroke-dasharray:251;stroke-dashoffset:251;transition:stroke-dashoffset .5s ease}
 </style>
 </head>
 <body>
@@ -1000,31 +1008,18 @@ function updateBottomNav(tab){
 </div>
 
 <div class="tab-content" id="tab-backtest">
-  <div style="margin-bottom:16px">
-    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:12px">🔬 Backtest</div>
-    <!-- Banner dati reali -->
-    <div style="background:linear-gradient(135deg,rgba(74,144,217,0.1) 0%,rgba(74,222,158,0.06) 100%);border:1px solid rgba(74,144,217,0.3);border-radius:12px;padding:14px 16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div style="font-size:18px">📡</div>
-        <div style="font-size:13px;font-weight:800;color:#e8e9ea">Dati storici reali — non simulati</div>
+  <div style="margin-bottom:14px">
+    <div style="font-size:18px;font-weight:800;color:#e8e9ea;margin-bottom:10px">🔬 Backtest</div>
+    <div style="background:linear-gradient(135deg,rgba(74,144,217,0.08) 0%,rgba(74,222,158,0.04) 100%);border:1px solid rgba(74,144,217,0.25);border-radius:12px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:700;color:#e8e9ea;margin-bottom:6px">📡 Dati storici reali — non simulati</div>
+      <div style="font-size:11px;color:#7a90a8;line-height:1.6;margin-bottom:8px">I rendimenti sono calcolati su prezzi reali scaricati da Yahoo Finance e convertiti in EUR.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+        <span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:2px 8px;border-radius:4px">🌍 Az. glob → S&amp;P500+MSCI EAFE</span>
+        <span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:2px 8px;border-radius:4px">🌏 Emergenti → MSCI EM</span>
+        <span style="font-size:10px;background:rgba(74,222,158,0.12);color:#4ade9e;padding:2px 8px;border-radius:4px">📊 Bond LT → TLT (20Y)</span>
+        <span style="font-size:10px;background:rgba(251,191,36,0.12);color:#fbbf24;padding:2px 8px;border-radius:4px">🥇 Oro → GLD</span>
       </div>
-      <div style="font-size:12px;color:#7a90a8;line-height:1.6;margin-bottom:10px">
-        I rendimenti mostrati sono calcolati su prezzi reali scaricati da Yahoo Finance.
-        Ogni categoria è rappresentata da un ETF o indice reale:
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-        <span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:3px 8px;border-radius:4px">🌍 Azionario glob. → S&amp;P500 + MSCI EAFE</span>
-        <span style="font-size:10px;background:rgba(74,144,217,0.12);color:#4a90d9;padding:3px 8px;border-radius:4px">🌏 Emergenti → MSCI EM (EEM)</span>
-        <span style="font-size:10px;background:rgba(74,222,158,0.12);color:#4ade9e;padding:3px 8px;border-radius:4px">📊 Bond LT → iShares 20Y (TLT)</span>
-        <span style="font-size:10px;background:rgba(74,222,158,0.12);color:#4ade9e;padding:3px 8px;border-radius:4px">📊 Bond CT → iShares 1-3Y (SHY)</span>
-        <span style="font-size:10px;background:rgba(251,191,36,0.12);color:#fbbf24;padding:3px 8px;border-radius:4px">🥇 Oro → SPDR Gold (GLD)</span>
-        <span style="font-size:10px;background:rgba(249,115,22,0.12);color:#f97316;padding:3px 8px;border-radius:4px">🛢 Materie prime → iShares GSCI (GSG)</span>
-      </div>
-      <div style="font-size:10px;color:#4a5568;border-top:1px solid rgba(74,144,217,0.15);padding-top:8px">
-        💱 Tutti i valori sono convertiti in <strong style="color:#7a90a8">EUR</strong> usando il cambio storico reale USD/EUR.
-        Il portafoglio reale usa i prezzi storici degli ETF che possiedi.
-        Disponibile circa <span id="bt-data-years" style="color:#e8b84b;font-weight:700">—</span> di storico.
-      </div>
+      <div style="font-size:10px;color:#4a5568">Storico disponibile: <span id="bt-data-years" style="color:#e8b84b;font-weight:700">—</span> anni</div>
     </div>
   </div>
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:12px">
@@ -1038,18 +1033,17 @@ function updateBottomNav(tab){
     </div></div>
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px">
     <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Portafogli da confrontare</div>
-    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafoglio reale</div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Il tuo portafoglio</div>
       <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer">
         <input type="checkbox" id="bt-check-real" checked style="accent-color:#e8b84b;width:16px;height:16px">
         <span style="font-size:13px;font-weight:600;color:#4a90d9">🔵 Portafoglio reale</span></label></div>
-    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli salvati</div><div id="bt-saved-list"></div></div>
+    <div style="margin-bottom:10px"><div style="font-size:10px;color:#4a5568;margin-bottom:6px">I miei portafogli ideali</div><div id="bt-saved-list"></div></div>
     <div><div style="font-size:10px;color:#4a5568;margin-bottom:6px">Portafogli classici</div><div id="bt-classic-list"></div></div></div>
   <button onclick="runBacktest()" id="btn-backtest" style="width:100%;padding:14px;background:#e8b84b;border:none;border-radius:12px;color:#0a0f1a;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:12px">▶ Avvia Backtest</button>
   <div id="bt-proxy-status" style="font-size:11px;color:#4a5568;text-align:center;margin-bottom:12px"></div>
   <div id="bt-results" style="display:none">
     <div style="height:320px;position:relative;margin-bottom:16px"><canvas id="ch-backtest"></canvas></div>
-    <div id="bt-metrics-table"></div>
-    <div style="font-size:10px;color:#4a5568;margin-top:8px">Backtest su dati storici reali in EUR. I rendimenti passati non predicono il futuro.</div></div>
+    <div id="bt-metrics-table"></div></div>
 </main>
 
 <div class="modal-overlay" id="modal-position" onclick="overlayClick(event,'position')"><div class="modal">
@@ -2674,8 +2668,20 @@ function buildCatReturns(defs,fxReturns){
   if(!defs||!defs.length)return [];
   if(defs.length===1&&defs[0].ticker==='^IRX'){
     var data=PROXY_DATA['^IRX'];
-    if(!data||!data.closes)return [];
-    return data.closes.map(function(c){return c/100/12;});
+    if(!data||!data.closes||!data.timestamps)return [];
+    // Aggrega a media mensile (il dato è giornaliero)
+    var monthMap={};
+    for(var ii=0;ii<data.timestamps.length;ii++){
+      var dd=new Date(data.timestamps[ii]*1000);
+      var kk=dd.getFullYear()*100+dd.getMonth();
+      if(!monthMap[kk])monthMap[kk]=[];
+      monthMap[kk].push(data.closes[ii]);
+    }
+    return Object.keys(monthMap).sort().map(function(kk){
+      var vals=monthMap[kk];
+      var avg=vals.reduce(function(s,v){return s+v;},0)/vals.length;
+      return avg/100/12; // tasso annuale % → rendimento mensile decimale
+    });
   }
   var maps=defs.map(function(d){return {w:d.w,ret:buildMonthlyMap(d.ticker)};});
   var allKeys=null;
@@ -2817,7 +2823,26 @@ function calcAllocReturns(weights){
   Object.keys(weights).forEach(function(cat){var w=weights[cat]||0;if(w>0&&PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length>0){minLen=Math.min(minLen,PROXY_MONTHLY[cat].length);hasData=true;}});
   if(!hasData||minLen<24||minLen===Infinity)return null;
   var returns=[];
-  for(var i=0;i<minLen;i++){var r=0;Object.keys(weights).forEach(function(cat){var w=(weights[cat]||0)/100;if(w>0&&PROXY_MONTHLY[cat]){var arr=PROXY_MONTHLY[cat];r+=w*(arr[arr.length-minLen+i]||0);}});returns.push(r);}
+  for(var i=0;i<minLen;i++){
+    var r=0;
+    Object.keys(weights).forEach(function(cat){
+      var w=(weights[cat]||0)/100;
+      if(w>0&&PROXY_MONTHLY[cat]){
+        var arr=PROXY_MONTHLY[cat];
+        var val=arr[arr.length-minLen+i]||0;
+        // Sanity check: rendimento mensile realistico < ±30%
+        val=Math.max(-0.30,Math.min(0.30,val));
+        r+=w*val;
+      }
+    });
+    returns.push(r);
+  }
+  // Verifica che i rendimenti siano plausibili
+  var avgReturn=returns.reduce(function(s,v){return s+v;},0)/returns.length;
+  if(Math.abs(avgReturn)>0.05){
+    console.warn('[calcAllocReturns] Rendimenti medi mensili sospetti:',avgReturn,'- probabile errore dati');
+    return null;
+  }
   return returns;
 }
 
@@ -3759,8 +3784,8 @@ function iOpenClassicDetail(id){
       '<button data-use-classic="'+id+'" style="flex:1;padding:12px;background:#e8b84b;border:none;border-radius:10px;color:#0a0f1a;font-weight:800;font-size:14px;cursor:pointer">Usa questo portafoglio →</button>'+
     '</div>';
 
-  document.getElementById('ideal-entry').style.display='none';
-  document.getElementById('ideal-classic-detail').style.display='block';
+  var iEntry=document.getElementById('ideal-entry');if(iEntry)iEntry.style.display='none';
+  var iDet=document.getElementById('ideal-classic-detail');if(iDet)iDet.style.display='block';
   // Handler per "Usa questo portafoglio"
   var detBody=document.getElementById('ideal-classic-detail-body');
   if(detBody){
@@ -3830,6 +3855,8 @@ function iRenderClassicDetailBt(p){
 }
 
 // ─── NAVIGAZIONE ENTRY / EXPLORE / GUIDED ────────────────────────────────────
+function iOpenClassicDetailFromCard(id){var e=document.getElementById('ideal-entry');if(e)e.style.display='none';iOpenClassicDetail(id);}
+
 function iShowEntry(){
   document.getElementById('ideal-entry').style.display='block';
   document.getElementById('ideal-explore').style.display='none';
@@ -7492,7 +7519,11 @@ function initBacktestTab(){
   function updateBtStatus(){
     var maxYrs=0;
     if(typeof PROXY_MONTHLY!=='undefined'){
-      Object.values(PROXY_MONTHLY).forEach(function(arr){if(arr&&arr.length)maxYrs=Math.max(maxYrs,Math.round(arr.length/12));});
+      // Esclude 'cash' (^IRX) che ha dati giornalieri
+      ['glob','em','eu','bondlt','bondct','gold','comm'].forEach(function(cat){
+        if(PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length)
+          maxYrs=Math.max(maxYrs,Math.round(PROXY_MONTHLY[cat].length/12));
+      });
     }
     var yrsEl=document.getElementById('bt-data-years');
     if(yrsEl)yrsEl.textContent=maxYrs>0?maxYrs+' anni':'—';
@@ -7505,6 +7536,144 @@ function initBacktestTab(){
     if(typeof loadProxyData==='function')loadProxyData().then(function(){updateBtStatus();});
   } else {
     updateBtStatus();
+  }
+}
+
+
+function iGoToBacktest(){
+  // Pre-seleziona il portafoglio ideale corrente nel backtest
+  saveIdealState&&saveIdealState();
+  autoSaveIdealPortfolio&&autoSaveIdealPortfolio();
+  switchTab('backtest');
+  // Dopo init, segna il portafoglio salvato come selezionato
+  setTimeout(function(){
+    var auto=loadSavedPortfolios().find(function(p){return p.id==='auto';});
+    if(auto){
+      document.querySelectorAll('.bt-check-saved[data-id="auto"]').forEach(function(cb){cb.checked=true;});
+    }
+  },300);
+}
+
+function dashLoadAndRender(){
+  var hasCache=typeof PC!=='undefined'&&Object.keys(PC).some(function(k){return PC[k]&&PC[k].timestamps&&PC[k].timestamps.length>0;});
+  if(!hasCache&&typeof loadPCFromStorage==='function')hasCache=loadPCFromStorage();
+  if(hasCache){
+    rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();
+    if(typeof loadPCData==='function')loadPCData().then(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();}).catch(function(){});
+  } else {
+    var ph=document.getElementById('dash-perf-placeholder');
+    if(ph){ph.style.cssText='display:flex;align-items:center;justify-content:center';
+      ph.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px">'+
+        '<div style="position:relative;width:90px;height:90px">'+
+          '<svg style="transform:rotate(-90deg)" width="90" height="90" viewBox="0 0 90 90">'+
+            '<circle fill="none" stroke="#1e2d40" stroke-width="5" cx="45" cy="45" r="40"/>'+
+            '<circle id="pac-ring-fill" fill="none" stroke="#e8b84b" stroke-width="5" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251" cx="45" cy="45" r="40" style="transition:stroke-dashoffset .5s ease"/>'+
+          '</svg>'+
+          '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">'+
+            '<span id="pac-ring-pct" style="font-size:18px;font-weight:800;color:#e8b84b">0%</span></div></div>'+
+        '<div id="pac-ring-sub" style="font-size:12px;color:#7a90a8">Download da Yahoo Finance...</div></div>';}
+    function setR(p,l){var f=document.getElementById('pac-ring-fill'),pt=document.getElementById('pac-ring-pct'),s=document.getElementById('pac-ring-sub');
+      if(f)f.style.strokeDashoffset=251-(251*p/100);if(pt)pt.textContent=Math.round(p)+'%';if(s&&l)s.textContent=l;}
+    setR(15,'Connessione a Yahoo Finance...');
+    if(typeof loadPCData==='function')loadPCData()
+      .then(function(){setR(100,'Completato!');setTimeout(function(){rdash();if(typeof renderDashPerfChart==='function')renderDashPerfChart();},400);})
+      .catch(function(){if(ph)ph.innerHTML='<div style="padding:20px;text-align:center"><div style="font-size:24px">⚠️</div><div style="font-size:12px;color:#f87171">Errore caricamento</div><button onclick="dashLoadAndRender()" style="margin-top:10px;padding:6px 14px;background:#161e2e;border:1px solid #263040;border-radius:6px;color:#7a90a8;cursor:pointer;font-size:11px">↺ Riprova</button></div>';});
+  }
+}
+
+function openOvTransactions(){
+  var ov=document.getElementById('ov-transactions');if(!ov)return;
+  ov.style.display='block';document.body.style.overflow='hidden';
+  var tbody=document.getElementById('ov-tx-body');if(!tbody)return;
+  var rows=S.transactions.slice().reverse().map(function(t){
+    var pos=S.positions.find(function(p){return p.id===t.positionId;})||{name:'\u2014',ticker:'\u2014'};
+    var tot=(parseNum(t.shares)*parseNum(t.price))+(parseNum(t.fees)||0);
+    return '<tr><td style="padding:7px 8px">'+dt(t.date||'')+'</td>'+
+      '<td style="padding:7px 8px;font-weight:600;color:#e8e9ea">'+esc(pos.name)+'</td>'+
+      '<td style="padding:7px 8px;text-align:right">'+fNum(parseNum(t.shares),4)+'</td>'+
+      '<td style="padding:7px 8px;text-align:right">'+fEur(parseNum(t.price))+'</td>'+
+      '<td style="padding:7px 8px;text-align:right">'+fEur(parseNum(t.fees)||0)+'</td>'+
+      '<td style="padding:7px 8px;text-align:right;font-weight:700">'+fEur(tot)+'</td>'+
+      '<td style="padding:7px 8px"><button data-edit-tx="'+t.id+'" style="background:none;border:none;color:#7a90a8;cursor:pointer;font-size:13px;margin-right:4px">\u270f</button>'+
+        '<button data-del-tx="'+t.id+'" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:13px">\u2715</button></td></tr>';
+  }).join('');
+  tbody.innerHTML=rows||'<tr><td colspan="7" style="text-align:center;color:#4a5568;padding:20px">Nessuna transazione</td></tr>';
+  var tbl=tbody.closest('table');
+  if(tbl)tbl.onclick=function(ev){
+    var eb=ev.target.closest('[data-edit-tx]');if(eb&&typeof openEditTx==='function'){openEditTx(eb.getAttribute('data-edit-tx'));return;}
+    var db=ev.target.closest('[data-del-tx]');if(db&&typeof deleteTx==='function'){deleteTx(db.getAttribute('data-del-tx'));openOvTransactions();}
+  };
+}
+
+function openOvReport(){
+  var ov=document.getElementById('ov-report');if(!ov)return;
+  ov.style.display='block';document.body.style.overflow='hidden';
+  var body=document.getElementById('ov-report-body');if(!body)return;
+  var cp=computeAll(),tv=cp.reduce(function(s,p){return s+(p.currentVal||0);},0),ti=cp.reduce(function(s,p){return s+(p.totalCost||0);},0),tg=tv-ti;
+  body.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'+
+    [['Valore',fEur(tv),'#e8e9ea'],['Investito',fEur(ti),'#7a90a8'],['Gain',(tg>=0?'+':'')+fEur(tg),tg>=0?'#4ade9e':'#f87171']].map(function(k){
+      return '<div style="background:#161e2e;border-radius:10px;padding:12px"><div style="font-size:10px;color:#7a90a8;margin-bottom:4px">'+k[0]+'</div><div style="font-size:18px;font-weight:800;color:'+k[2]+'">'+k[1]+'</div></div>';
+    }).join('')+'</div>'+
+    '<div style="font-size:11px;font-weight:700;color:#7a90a8;margin-bottom:8px">Posizioni</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+    '<thead><tr>'+['Strumento','Ticker','Quote','Valore','Gain%'].map(function(h){return '<th style="padding:8px;text-align:left;color:#4a5568;border-bottom:1px solid #263040;font-size:10px">'+h+'</th>';}).join('')+'</tr></thead>'+
+    '<tbody>'+cp.map(function(p){return '<tr style="border-bottom:1px solid #0f1520"><td style="padding:8px;color:#e8e9ea;font-weight:600">'+esc(p.name||'\u2014')+'</td>'+
+      '<td style="padding:8px;color:#7a90a8;font-size:11px">'+dt(p.ticker||'\u2014')+'</td>'+
+      '<td style="padding:8px;text-align:right">'+fNum(p.totalShares,4)+'</td>'+
+      '<td style="padding:8px;text-align:right;font-weight:700">'+fEur(p.currentVal||0)+'</td>'+
+      '<td style="padding:8px;text-align:right;color:'+(p.gainPct>=0?'#4ade9e':'#f87171')+'">'+fPct(p.gainPct||0)+'</td></tr>';}).join('')+'</tbody></table></div>';
+}
+
+function initBacktestTab(){
+  var classicEl=document.getElementById('bt-classic-list');
+  if(classicEl&&typeof FAMOUS_PORTFOLIOS!=='undefined'){
+    var items='';
+    FAMOUS_PORTFOLIOS.forEach(function(p){
+      items+='<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px">'+
+        '<input type="checkbox" class="bt-check-classic" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px">'+
+        '<span style="font-size:13px;color:#e8e9ea">'+p.icon+' '+p.name+'</span></label>';
+    });
+    classicEl.innerHTML=items;
+  }
+  var savedEl=document.getElementById('bt-saved-list');
+  if(savedEl){
+    var saved=loadSavedPortfolios().filter(function(p){return !p.auto;});
+    // Includi anche auto-save
+    var all=loadSavedPortfolios();
+    if(!all.length){
+      savedEl.innerHTML='<div style="font-size:12px;color:#4a5568">Nessun portafoglio — <span style="color:#e8b84b;cursor:pointer" onclick="switchTab(\'simulator\')">crea in Portafoglio Ideale</span></div>';
+    } else {
+      savedEl.innerHTML=all.map(function(p){
+        var pr=(IDEAL_PROFILES&&IDEAL_PROFILES.find(function(x){return x.id===p.profile;}))||{icon:'\ud83d\udcca',name:p.name};
+        return '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161e2e;border-radius:8px;cursor:pointer;margin-bottom:6px">'+
+          '<input type="checkbox" class="bt-check-saved" data-id="'+p.id+'" style="accent-color:#e8b84b;width:16px;height:16px">'+
+          '<span style="font-size:13px;color:#e8e9ea">'+pr.icon+' '+p.name+(p.auto?' <span style="font-size:9px;color:#e8b84b">(auto)</span>':'')+' </span></label>';
+      }).join('');
+    }
+  }
+  var status=document.getElementById('bt-proxy-status');
+  var yrsEl=document.getElementById('bt-data-years');
+  var maxYrs=0;
+  if(typeof PROXY_MONTHLY!=='undefined'){
+    ['glob','em','eu','bondlt','bondct','gold','comm'].forEach(function(cat){
+      if(PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length)maxYrs=Math.max(maxYrs,Math.round(PROXY_MONTHLY[cat].length/12));
+    });
+  }
+  if(yrsEl)yrsEl.textContent=maxYrs>0?maxYrs:'—';
+  var hasData=maxYrs>1;
+  if(!hasData){
+    if(status)status.innerHTML='<span style="color:#e8b84b">\u23f3</span> Caricamento dati storici...';
+    if(typeof loadProxyData==='function')loadProxyData().then(function(){
+      ['glob','em','eu','bondlt','bondct','gold','comm'].forEach(function(cat){
+        if(PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length)maxYrs=Math.max(maxYrs,Math.round(PROXY_MONTHLY[cat].length/12));
+      });
+      if(yrsEl)yrsEl.textContent=maxYrs>0?maxYrs:'—';
+      if(status)status.innerHTML=maxYrs>1
+        ?'<span style="color:#4ade9e">\u2713</span> <strong>'+maxYrs+' anni</strong> di dati reali pronti'
+        :'<span style="color:#f87171">\u26a0\ufe0f</span> Dati insufficienti — riprova';
+    });
+  } else {
+    if(status)status.innerHTML='<span style="color:#4ade9e">\u2713</span> <strong>'+maxYrs+' anni</strong> di dati storici reali';
   }
 }
 </script>
