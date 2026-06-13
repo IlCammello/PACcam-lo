@@ -1046,7 +1046,7 @@ function updateBottomNav(tab){
       <div style="flex:1;min-width:140px"><label style="font-size:10px;color:#4a5568;display:block;margin-bottom:4px">Periodo storico</label>
         <select id="bt-period" style="width:100%;padding:8px;background:#161e2e;border:1px solid #263040;border-radius:8px;color:#e8e9ea;font-size:13px">
           <option value="5">Ultimi 5 anni</option><option value="10">Ultimi 10 anni</option>
-          <option value="15">Ultimi 15 anni</option><option value="0" selected>Massimo disponibile</option></select></div>
+          <option value="15">Ultimi 15 anni</option><option value="20">Ultimi 20 anni</option><option value="0" selected>Massimo disponibile</option></select></div>
     </div></div>
   <div style="background:#0f1520;border:1px solid #263040;border-radius:12px;padding:14px;margin-bottom:16px">
     <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;margin-bottom:12px">Portafogli</div>
@@ -2646,7 +2646,7 @@ async function loadProxyData(){
     if(cat==='fx')return;
     PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);
   });
-  try{localStorage.setItem('pac_proxy_v2',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  try{localStorage.setItem('pac_proxy_v4',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
   if(status)status.textContent='Caricati '+loaded+'/'+tot+' serie storiche';
   if(btn)btn.disabled=false;
   iCalcProj();
@@ -2654,7 +2654,7 @@ async function loadProxyData(){
 
 function loadProxyFromStorage(){
   try{
-    var raw=localStorage.getItem('pac_proxy_v2');
+    var raw=localStorage.getItem('pac_proxy_v4');
     if(!raw)return false;
     var d=JSON.parse(raw);
     if(!d||!d.monthly)return false;
@@ -2805,14 +2805,14 @@ async function loadProxyData(){
   }));
   var fx=buildMonthlyMap('EURUSD=X');
   Object.keys(PROXY_DEFS).forEach(function(cat){if(cat==='fx')return;PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);});
-  try{localStorage.setItem('pac_proxy_v2',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  try{localStorage.setItem('pac_proxy_v4',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
   if(status)status.textContent='Dati caricati ('+loaded+'/'+tot+' serie)';
   iCalcProj();
 }
 
 function loadProxyFromStorage(){
   try{
-    var raw=localStorage.getItem('pac_proxy_v2');if(!raw)return false;
+    var raw=localStorage.getItem('pac_proxy_v4');if(!raw)return false;
     var d=JSON.parse(raw);if(!d||!d.monthly)return false;
     if((Date.now()/1000)-(d.ts||0)>7*86400)return false;
     PROXY_MONTHLY=d.monthly;return true;
