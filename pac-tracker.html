@@ -2634,7 +2634,7 @@ async function loadProxyData(){
   await Promise.allSettled(Object.keys(tickers).map(async function(ticker){
     try{
       if(status)status.textContent='Carico '+ticker+'…';
-      var data=await fetchYChartWithFallback(ticker,'30y');
+      var data=await fetchYChartWithFallback(ticker,'max');
       if(data&&data.timestamps&&data.timestamps.length>12){
         PROXY_DATA[ticker]=data; loaded++;
         console.log('[Proxy] OK '+ticker+': '+data.timestamps.length+' punti');
@@ -2646,7 +2646,7 @@ async function loadProxyData(){
     if(cat==='fx')return;
     PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);
   });
-  try{localStorage.setItem('pac_proxy_v1',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  try{localStorage.setItem('pac_proxy_v2',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
   if(status)status.textContent='Caricati '+loaded+'/'+tot+' serie storiche';
   if(btn)btn.disabled=false;
   iCalcProj();
@@ -2654,7 +2654,7 @@ async function loadProxyData(){
 
 function loadProxyFromStorage(){
   try{
-    var raw=localStorage.getItem('pac_proxy_v1');
+    var raw=localStorage.getItem('pac_proxy_v2');
     if(!raw)return false;
     var d=JSON.parse(raw);
     if(!d||!d.monthly)return false;
@@ -2799,20 +2799,20 @@ async function loadProxyData(){
   var tot=Object.keys(tickers).length,loaded=0;
   await Promise.allSettled(Object.keys(tickers).map(async function(ticker){
     try{
-      var data=await fetchYChartWithFallback(ticker,'30y');
+      var data=await fetchYChartWithFallback(ticker,'max');
       if(data&&data.timestamps&&data.timestamps.length>12){PROXY_DATA[ticker]=data;loaded++;}
     }catch(e){console.warn('[Proxy]',ticker,e);}
   }));
   var fx=buildMonthlyMap('EURUSD=X');
   Object.keys(PROXY_DEFS).forEach(function(cat){if(cat==='fx')return;PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);});
-  try{localStorage.setItem('pac_proxy_v1',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  try{localStorage.setItem('pac_proxy_v2',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
   if(status)status.textContent='Dati caricati ('+loaded+'/'+tot+' serie)';
   iCalcProj();
 }
 
 function loadProxyFromStorage(){
   try{
-    var raw=localStorage.getItem('pac_proxy_v1');if(!raw)return false;
+    var raw=localStorage.getItem('pac_proxy_v2');if(!raw)return false;
     var d=JSON.parse(raw);if(!d||!d.monthly)return false;
     if((Date.now()/1000)-(d.ts||0)>7*86400)return false;
     PROXY_MONTHLY=d.monthly;return true;
@@ -4398,7 +4398,7 @@ async function fetchYChartWithFallback(ticker, range, isin){
   // 2. Fallback JustETF
   if(effectiveISIN){
     try{
-      var monthsMap={'1mo':1,'3mo':3,'6mo':6,'1y':12,'2y':24,'5y':60,'max':120};
+      var monthsMap={'1mo':1,'3mo':3,'6mo':6,'1y':12,'2y':24,'5y':60,'10y':120,'max':360};
       var months=monthsMap[range]||12;
       var from=new Date(Date.now()-months*30*24*60*60*1000).toISOString().slice(0,10);
       var series=await fetchJustETFHistory(effectiveISIN, from);
