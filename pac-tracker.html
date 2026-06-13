@@ -7248,40 +7248,42 @@ function runBacktest(){var btn=document.getElementById('btn-backtest');if(btn){b
 // Diagnostica proxy: testa quanti dati restituisce il worker per ogni range
 async function diagProxy(ticker){
   ticker=ticker||'^GSPC';
-  var ranges=['1y','2y','5y','10y','max'];
-  console.log('=== DIAGNOSTICA PROXY per '+ticker+' ===');
-  var report='Diagnostica '+ticker+':\n';
-  for(var i=0;i<ranges.length;i++){
-    var r=ranges[i];
-    try{
-      var url=WORKER_URL+'?t='+encodeURIComponent(ticker)+'&r='+r;
-      var text=null;
-      if(typeof window!=='undefined'&&window.electronAPI&&window.electronAPI.fetchNative){
-        var native=await window.electronAPI.fetchNative(url);
-        if(native&&native.ok)text=native.text||native.body||null;
-      }
-      if(!text){var resp=await fetch(url);if(resp&&resp.ok)text=await resp.text();}
-      if(text){
-        var d=JSON.parse(text);
-        var res=d.chart&&d.chart.result&&d.chart.result[0];
-        var ts=res&&res.timestamp;
-        if(ts&&ts.length){
-          var primo=new Date(ts[0]*1000).toISOString().slice(0,10);
-          var ultimo=new Date(ts[ts.length-1]*1000).toISOString().slice(0,10);
-          var anni=Math.round((ts[ts.length-1]-ts[0])/(365*86400));
-          var line='r='+r+': '+ts.length+' punti, '+primo+' → '+ultimo+' ('+anni+' anni)';
-          console.log(line);report+=line+'\n';
-        } else {
-          console.log('r='+r+': nessun timestamp');report+='r='+r+': nessun dato\n';
+  var ranges=['1y','5y','max'];
+  var report='Diagnostica '+ticker+':\n\n';
+  (async function(){
+    for(var i=0;i<ranges.length;i++){
+      var r=ranges[i];
+      try{
+        var url=WORKER_URL+'?t='+encodeURIComponent(ticker)+'&r='+r;
+        var text=null;
+        if(typeof window!=='undefined'&&window.electronAPI&&window.electronAPI.fetchNative){
+          var native=await window.electronAPI.fetchNative(url);
+          if(native&&native.ok)text=native.text||native.body||null;
         }
-      } else {
-        console.log('r='+r+': risposta vuota');report+='r='+r+': risposta vuota\n';
-      }
-    }catch(e){console.log('r='+r+': ERRORE '+e.message);report+='r='+r+': errore\n';}
-  }
-  alert(report);
-  return report;
+        if(!text){var resp=await fetch(url);if(resp&&resp.ok)text=await resp.text();}
+        if(text){
+          var d=JSON.parse(text);
+          var res=d.chart&&d.chart.result&&d.chart.result[0];
+          var ts=res&&res.timestamp;
+          var meta=res&&res.meta;
+          var gran=meta&&meta.dataGranularity||'?';
+          if(ts&&ts.length){
+            var primo=new Date(ts[0]*1000).toISOString().slice(0,10);
+            var ultimo=new Date(ts[ts.length-1]*1000).toISOString().slice(0,10);
+            report+='r='+r+': '+ts.length+' punti\n  '+primo+' -> '+ultimo+'\n  granularita Yahoo: '+gran+'\n\n';
+          } else {
+            report+='r='+r+': nessun timestamp (granularita: '+gran+')\n\n';
+          }
+        } else {
+          report+='r='+r+': risposta vuota\n\n';
+        }
+      }catch(e){report+='r='+r+': ERRORE '+e.message+'\n\n';}
+    }
+    console.log(report);
+    alert(report);
+  })();
 }
+window.diagProxy=diagProxy;
 window.diagProxy=diagProxy;
 </script>
 
