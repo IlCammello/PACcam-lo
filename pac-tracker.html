@@ -2646,7 +2646,7 @@ async function loadProxyData(){
     if(cat==='fx')return;
     PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);
   });
-  try{localStorage.setItem('pac_proxy_v4',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  try{localStorage.setItem('pac_proxy_v5',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
   if(status)status.textContent='Caricati '+loaded+'/'+tot+' serie storiche';
   if(btn)btn.disabled=false;
   iCalcProj();
@@ -2654,7 +2654,7 @@ async function loadProxyData(){
 
 function loadProxyFromStorage(){
   try{
-    var raw=localStorage.getItem('pac_proxy_v4');
+    var raw=localStorage.getItem('pac_proxy_v5');
     if(!raw)return false;
     var d=JSON.parse(raw);
     if(!d||!d.monthly)return false;
@@ -2805,14 +2805,14 @@ async function loadProxyData(){
   }));
   var fx=buildMonthlyMap('EURUSD=X');
   Object.keys(PROXY_DEFS).forEach(function(cat){if(cat==='fx')return;PROXY_MONTHLY[cat]=buildCatReturns(PROXY_DEFS[cat],fx);});
-  try{localStorage.setItem('pac_proxy_v4',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
+  try{localStorage.setItem('pac_proxy_v5',JSON.stringify({ts:Date.now()/1000,monthly:PROXY_MONTHLY}));}catch(e){}
   if(status)status.textContent='Dati caricati ('+loaded+'/'+tot+' serie)';
   iCalcProj();
 }
 
 function loadProxyFromStorage(){
   try{
-    var raw=localStorage.getItem('pac_proxy_v4');if(!raw)return false;
+    var raw=localStorage.getItem('pac_proxy_v5');if(!raw)return false;
     var d=JSON.parse(raw);if(!d||!d.monthly)return false;
     if((Date.now()/1000)-(d.ts||0)>7*86400)return false;
     PROXY_MONTHLY=d.monthly;return true;
@@ -4327,7 +4327,7 @@ var WORKER_URL = 'https://paccamelo-proxy.leonardo-viscuso.workers.dev';
 
 async function fetchViaWorker(ticker, range) {
   if (!WORKER_URL) return null;
-  var url = WORKER_URL + '?t=' + encodeURIComponent(ticker) + '&r=' + (range||'2y');
+  var url = WORKER_URL + '?t=' + encodeURIComponent(ticker) + '&r=' + (range||'2y') + '&_cb=' + Math.floor(Date.now()/3600000);
   try {
     var text = null;
     // Electron: usa fetchNative (IPC diretto, nessun CORS issue)
@@ -7254,7 +7254,7 @@ async function diagProxy(ticker){
     for(var i=0;i<ranges.length;i++){
       var r=ranges[i];
       try{
-        var url=WORKER_URL+'?t='+encodeURIComponent(ticker)+'&r='+r;
+        var url=WORKER_URL+'?t='+encodeURIComponent(ticker)+'&r='+r+'&_cb='+Date.now();
         var text=null;
         if(typeof window!=='undefined'&&window.electronAPI&&window.electronAPI.fetchNative){
           var native=await window.electronAPI.fetchNative(url);
