@@ -7255,14 +7255,11 @@ function runBacktest(){var btn=document.getElementById('btn-backtest');if(btn){b
     }
 var monthly=parseFloat(document.getElementById('bt-monthly')?.value)||200;var pY=parseInt(document.getElementById('bt-period')?.value)||0;var colors=['#4a90d9','#e8b84b','#4ade9e','#f97316','#7c6fcd','#f87171','#94a3b8'];var datasets=[];var realCb=document.getElementById('bt-check-real');
     if(realCb&&realCb.checked){
-      var realMode=document.getElementById('bt-real-mode');
-      var useProjection=realMode&&realMode.value==='proj';
-      if(useProjection){
-        var rp=buildRealHistoricalProjection();
-        if(rp&&rp.length>=24)datasets.push({returns:rp,label:'🔵 Mio portafoglio (proiezione storica)',color:colors[0],source:'proxy'});
+      var rp=buildRealHistoricalProjection();
+      if(rp&&rp.length>=24){
+        datasets.push({returns:rp,label:'🔵 Mio portafoglio',color:colors[0],source:'proxy'});
       } else {
-        var rr=typeof buildRealMonthlyReturns==='function'?buildRealMonthlyReturns():null;
-        if(rr&&rr.length>=12)datasets.push({returns:rr,label:'🔵 Mio portafoglio (storico reale)',color:colors[0],source:'real'});
+        console.warn('[backtest] proiezione reale non disponibile, rp.length=',rp&&rp.length);
       }
     }document.querySelectorAll('.bt-check-saved:checked').forEach(function(cb,i){var id=cb.getAttribute('data-id');var saved=typeof loadSavedPortfolios==='function'&&loadSavedPortfolios().find(function(p){return p.id===id;});if(saved){var res=calcAllocReturnsWithFallback(saved.weights,null);if(res){var pr=(typeof IDEAL_PROFILES!=='undefined'&&IDEAL_PROFILES.find(function(x){return x.id===saved.profile;}))||{icon:'📊'};datasets.push({returns:res.returns,label:pr.icon+' '+saved.name,color:colors[(i+1)%colors.length],source:res.source});}}});document.querySelectorAll('.bt-check-classic:checked').forEach(function(cb,i){var id=cb.getAttribute('data-id');var p=typeof FAMOUS_PORTFOLIOS!=='undefined'&&FAMOUS_PORTFOLIOS.find(function(x){return x.id===id;});if(p){var res=calcAllocReturnsWithFallback(p.w,id);if(res)datasets.push({returns:res.returns,label:p.icon+' '+p.name,color:colors[(i+2)%colors.length],source:res.source,desc:res.desc,sCagr:res.cagr});}});if(!datasets.length){alert('Seleziona almeno un portafoglio.');if(btn){btn.disabled=false;btn.textContent='▶ Avvia Backtest';}return;}var maxLen=Math.min.apply(null,datasets.map(function(d){return d.returns.length;}));var len=pY>0?Math.min(pY*12,maxLen):maxLen;var years=Math.round(len/12);var requestedYears=pY>0?pY:Math.round(maxLen/12);var dataLimited=pY>0&&maxLen<pY*12;var step=Math.max(1,Math.floor(len/40));var finalInv=monthly*len;function calcBt(returns){var val=0,hist=[];returns.slice(-len).forEach(function(r){val=(val+monthly)*(1+r);hist.push(Math.round(val));});return hist;}var labels=[],inv=[];for(var i=0;i<len;i+=step){labels.push(i<12?(i+1)+'m':Math.round(i/12)+'a');inv.push(Math.round(monthly*(i+1)));}var chartDs=[{label:'Capitale versato',data:inv,borderColor:'#4a5568',borderDash:[4,4],fill:false,tension:0,borderWidth:1.5,pointRadius:0}];var summaries=[];datasets.forEach(function(d){var bt=calcBt(d.returns);var vals=[];for(var k=0;k<len;k+=step)vals.push(bt[k]||0);chartDs.push({label:d.label,data:vals,borderColor:d.color,fill:false,tension:.3,borderWidth:2.5,pointRadius:0});summaries.push({label:d.label,color:d.color,val:bt[bt.length-1]||0,source:d.source,desc:d.desc,sCagr:d.sCagr});});var ctx=document.getElementById('ch-backtest');if(ctx){if(window._chBt)window._chBt.destroy();window._chBt=new Chart(ctx,{type:'line',data:{labels:labels,datasets:chartDs},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7a90a8',font:{size:10},boxWidth:10,padding:8}},tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){return c.dataset.label+': '+Math.round(c.raw).toLocaleString('it-IT')+'€';}}}},scales:{x:{grid:{display:false},ticks:{color:'#7a90a8',font:{size:9},maxTicksLimit:12}},y:{grid:{color:'rgba(38,48,64,.4)'},ticks:{color:'#7a90a8',font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+'k€':v+'€';},maxTicksLimit:6},position:'right'}}}});}summaries.sort(function(a,b){return b.val-a.val;});var hdr=document.getElementById('bt-results-header');if(hdr)hdr.innerHTML=(dataLimited?'<div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:11px;color:#f97316">⚠️ Il <strong>portafoglio reale</strong> ha solo '+years+' anni di storico (i tuoi ETF sono recenti). Il confronto qui copre '+years+' anni. I portafogli classici, se selezionati da soli, usano dati accademici su 50+ anni.</div>':'')+'<div style="font-size:12px;color:#7a90a8;padding:6px 0">PAC <strong style="color:#e8b84b">'+fEur(monthly)+'</strong>/mese · <strong style="color:#e8b84b">'+years+' anni</strong>'+(summaries.some(function(s){return s.source==='stats';})?' · <span style="color:#4ade9e">★ ricerca accademica</span>':'')+(summaries.some(function(s){return s.source==='proxy';})?' · <span style="color:#4a90d9">● dati reali</span>':'')+'</div>';var met=document.getElementById('bt-metrics-table');if(met){var rows=summaries.map(function(s,i){var ret=((s.val/finalInv-1)*100).toFixed(1);var cagr=years>1?(Math.pow(Math.max(s.val,0.01)/Math.max(finalInv,0.01),1/years)-1)*100:null;var c=s.val>finalInv?'#4ade9e':'#f87171';var stag=s.source==='stats'?'<span style="font-size:9px;color:#4ade9e"> ★</span>':s.source==='proxy'?'<span style="font-size:9px;color:#4a90d9"> ●</span>':'';return '<tr style="background:'+(i%2===0?'#0f1520':'transparent')+'"><td style="padding:8px 10px;color:'+s.color+';font-weight:600;font-size:12px">'+(i===0?'🏆 ':'')+s.label+stag+'</td><td style="padding:8px 10px;text-align:right;color:'+c+';font-weight:700;font-size:13px">'+Math.round(s.val).toLocaleString('it-IT')+'€</td><td style="padding:8px 10px;text-align:right;color:'+c+';font-size:12px">'+(s.val>finalInv?'+':'')+ret+'%</td><td style="padding:8px 10px;text-align:right;color:#7c6fcd;font-size:12px">'+(cagr!==null?cagr.toFixed(1)+'%/a':'N/D')+'</td></tr>';}).join('');met.innerHTML='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>'+['Portafoglio','Valore finale','Rend. tot.','CAGR'].map(function(h){return '<th style="padding:7px 10px;text-align:right;color:#4a5568;border-bottom:1px solid #263040;font-size:10px">'+h+'</th>';}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div><div style="font-size:10px;color:#4a5568;margin-top:6px">★ dati ricerca accademica (50+ anni). ● dati proxy reali. I rendimenti passati non predicono il futuro.</div>';}document.getElementById('bt-results').style.display='block';if(btn){btn.disabled=false;btn.textContent='▶ Avvia Backtest';}},50);}
 
@@ -7349,14 +7346,22 @@ function buildRealAllocationWeights(){
 // Proiezione storica del portafoglio reale: usa la SUA composizione % sui dati storici lunghi del proxy
 function buildRealHistoricalProjection(){
   var weights=buildRealAllocationWeights();
-  if(!weights)return null;
-  // Rimuovi btc se il proxy non ce l'ha (i dati crypto storici sono brevi/assenti)
-  var hasBtcData=typeof PROXY_MONTHLY!=='undefined'&&PROXY_MONTHLY.btc&&PROXY_MONTHLY.btc.length>24;
-  if(!hasBtcData&&weights.btc>0){
-    // ridistribuisci il peso btc su glob
-    weights.glob+=weights.btc;weights.btc=0;
-  }
-  return calcAllocReturns(weights);
+  if(!weights){console.warn('[proj] nessun peso allocazione');return null;}
+  console.log('[proj] pesi originali:',JSON.stringify(weights));
+  // Ridistribuisci su 'glob' i pesi di categorie SENZA dati proxy validi (>=24 mesi)
+  var orphan=0;
+  Object.keys(weights).forEach(function(cat){
+    if(cat==='glob')return;
+    if(weights[cat]>0){
+      var hasData=typeof PROXY_MONTHLY!=='undefined'&&PROXY_MONTHLY[cat]&&PROXY_MONTHLY[cat].length>=24;
+      if(!hasData){orphan+=weights[cat];weights[cat]=0;}
+    }
+  });
+  if(orphan>0){weights.glob=(weights.glob||0)+orphan;console.log('[proj] ridistribuiti',orphan.toFixed(1),'% su glob');}
+  console.log('[proj] pesi finali:',JSON.stringify(weights));
+  var r=calcAllocReturns(weights);
+  console.log('[proj] calcAllocReturns ->',r?r.length+' mesi':'null');
+  return r;
 }
 
 
@@ -7391,9 +7396,10 @@ function monteCarloProjection(monthlyReturns, projMonths, monthlyPAC, N){
 // Disegna la proiezione futura del portafoglio reale nel backtest
 function renderFutureProjection(monthly, years){
   var weights=buildRealAllocationWeights();
-  if(!weights){return false;}
-  var hist=buildRealHistoricalProjection(); // rendimenti storici della MIA allocazione
-  if(!hist||hist.length<24){return false;}
+  if(!weights){console.warn('[future] no weights');return false;}
+  var hist=buildRealHistoricalProjection();
+  if(!hist||hist.length<24){console.warn('[future] hist insufficiente:',hist&&hist.length);return false;}
+  console.log('[future] hist mesi:',hist.length);
   var projMonths=years*12;
   var mc=monteCarloProjection(hist, projMonths, monthly, 1500);
   if(!mc)return false;
